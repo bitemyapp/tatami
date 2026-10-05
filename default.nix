@@ -15,25 +15,7 @@
 let
   cfg = config.calamares.omarchy;
   configDir = "/etc/xdg/omarchy";
-  # Content-addressed source and lock: the installation media prebuild this
-  # from a different directory than the installed /etc/nixos, and both must
-  # produce the same derivation.
-  toolSource = builtins.path {
-    path = ./tool;
-    name = "calamares-omarchy-tool-src";
-    filter = path: _: baseNameOf path != "target";
-  };
-  tool = pkgs.rustPlatform.buildRustPackage {
-    pname = "calamares-omarchy-tool";
-    version = "0.1.0";
-    src = toolSource;
-    cargoLock.lockFile = "${toolSource}/Cargo.lock";
-    meta = {
-      description = "Session launcher and desktop commands for Omarchy-style Hyprland";
-      license = lib.licenses.gpl3Plus;
-      mainProgram = "omarchy";
-    };
-  };
+  tool = pkgs.callPackage ./tool/package.nix { };
   # Desktop names Hyprland:Omarchy: Hyprland first, so portals and the
   # terminal choice follow Hyprland's; Omarchy makes uwsm load env-omarchy.
   session = pkgs.writeTextFile {
