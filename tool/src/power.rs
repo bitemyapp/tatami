@@ -11,12 +11,11 @@ fn locked() -> bool {
 /// `lock_only` (before suspend the displays turn off anyway).
 pub fn lock(lock_only: bool) {
     if !locked()
-        && let Ok(me) = std::env::current_exe()
-        && let Some(me) = me.to_str()
+        && let Some(me) = util::me()
     {
         // Wait for hyprlock in a separate process so this command returns
         // promptly to hypridle and key bindings.
-        util::spawn(me, &["lock-wait"]);
+        util::spawn(&me, &["lock-wait"]);
     }
     // Unlock with the primary layout, whatever was active when locking.
     util::run("hyprctl", &["switchxkblayout", "all", "0"]);
@@ -38,19 +37,6 @@ pub fn wake(delay: u64) {
     hypr::dpms(true);
 }
 
-/// Close windows politely so applications can save state, then focus the
-/// first workspace.
-pub fn close_all() {
-    if let Ok(clients) = hypr::json("clients") {
-        for address in hypr::window_addresses(&clients) {
-            hypr::dispatch(&format!(
-                "hl.dsp.window.close({{ window = \"address:{address}\" }})"
-            ));
-        }
-    }
-    hypr::dispatch("hl.dsp.focus({ workspace = 1 })");
-}
-
 pub enum Leave {
     Logout,
     Reboot,
@@ -58,7 +44,7 @@ pub enum Leave {
 }
 
 pub fn leave(how: Leave) {
-    close_all();
+    crate::window::close_all();
     // Give browsers a moment to shut down cleanly.
     thread::sleep(Duration::from_secs(1));
     match how {
@@ -80,6 +66,34 @@ pub fn hibernation_available() -> bool {
     )
 }
 
+pub fn hibernate() {
+    if hibernation_available() {
+        util::run("systemctl", &["hibernate"]);
+    } else {
+        util::notify("\u{f0901}", "Hibernation needs a swap partition", "");
+    }
+}
+
+/// `Powered: yes` from `bluetoothctl show`.
+pub fn bluetooth_powered(show: &str) -> Option<bool> {
+    show.lines()
+        .find_map(|line| line.trim().strip_prefix("Powered:"))
+        .map(|value| value.trim() == "yes")
+}
+
+/// Right click on the bar's Bluetooth icon: switch the radio on or off.
+pub fn bluetooth_toggle() {
+    if let Some(powered) = util::output("bluetoothctl", &["show"])
+        .ok()
+        .and_then(|show| bluetooth_powered(&show))
+    {
+        util::run(
+            "bluetoothctl",
+            &["power", if powered { "off" } else { "on" }],
+        );
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -92,5 +106,12 @@ mod tests {
             "freeze mem disk"
         ));
         assert!(!can_hibernate(swaps, "freeze mem"));
+    }
+    #[test]
+    fn bluetooth_power_state() {
+        let show = "Controller 00:11:22:33:44:55 (public)\n\tName: x\n\tPowered: yes\n\tDiscoverable: no\n";
+        assert_eq!(bluetooth_powered(show), Some(true));
+        assert_eq!(bluetooth_powered("\tPowered: no\n"), Some(false));
+        assert_eq!(bluetooth_powered("No default controller available\n"), None);
     }
 }

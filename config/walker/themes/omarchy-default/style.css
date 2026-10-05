@@ -1,10 +1,11 @@
-/* Omarchy-style launcher theme, adapted from Omarchy 3.8.4 (MIT). Tokyo Night. */
-@define-color selected-text #7aa2f7;
-@define-color text #a9b1d6;
-@define-color base #1a1b26;
-@define-color border #a9b1d6;
-@define-color foreground #a9b1d6;
+/* Omarchy-style menu and launcher after Omarchy 4's menu card (shell/plugins/
+ * menu/Menu.qml and the Tokyo Night shell.toml; MIT, see ../../../../LICENSE):
+ * a dimmed screen, a 300px card with a 2px foreground border and 18px padding,
+ * a "Go…" header, 50px rows with an 18px glyph in a 36px column and 16px
+ * labels, and the selected row tinted with an accent label. */
 @define-color background #1a1b26;
+@define-color foreground #a9b1d6;
+@define-color accent #7aa2f7;
 
 * {
   all: unset;
@@ -12,116 +13,117 @@
 
 * {
   font-family: 'JetBrainsMono Nerd Font', monospace;
-  font-size: 18px;
-  color: @text;
+  font-size: 16px;
+  color: @foreground;
+}
+
+/* The full-screen scrim behind the card (Walker clears the window's classes). */
+window {
+  background: alpha(@background, 0.5);
 }
 
 scrollbar {
   opacity: 0;
 }
 
-.normal-icons {
-  -gtk-icon-size: 16px;
-}
-
+.normal-icons,
 .large-icons {
-  -gtk-icon-size: 32px;
+  -gtk-icon-size: 18px;
 }
 
 .box-wrapper {
-  background: alpha(@base, 0.95);
-  padding: 20px;
-  border: 2px solid @border;
-}
-
-.preview-box {
-}
-
-.box {
+  background: @background;
+  border: 2px solid @foreground;
+  padding: 18px;
 }
 
 .search-container {
-  background: @base;
-  padding: 10px;
-}
-
-.input placeholder {
-  opacity: 0.5;
+  min-height: 34px;
 }
 
 .input {
+  font-size: 16px;
+  caret-color: @foreground;
 }
 
-.input:focus,
-.input:active {
-  box-shadow: none;
-  outline: none;
+.input placeholder {
+  opacity: 0.58;
+}
+
+.input selection {
+  background: alpha(@accent, 0.35);
 }
 
 .content-container {
+  margin-top: 6px;
 }
 
+.elephant-hint,
 .placeholder {
+  font-size: 14px;
+  opacity: 0.7;
+  padding: 24px 0;
 }
 
-.scroll {
-}
-
-.list {
-}
-
-child,
-child > * {
-}
-
-child:hover .item-box {
-}
-
-child:selected .item-box {
-}
-
-child:selected .item-box * {
-  color: @selected-text;
-}
-
-child:selected {
-  background: alpha(@text, 0.07);
+child {
+  margin-bottom: 3px;
 }
 
 .item-box {
-  padding-left: 14px;
+  min-height: 50px;
+  padding: 0 8px;
 }
 
-.item-text-box {
-  all: unset;
-  padding: 14px 0;
+child:selected .item-box {
+  background: alpha(@foreground, 0.08);
+  box-shadow: inset 0 0 0 1px alpha(@foreground, 0.25);
 }
 
-.item-text {
+child:selected .item-box * {
+  color: @accent;
 }
 
-.item-subtext {
-  font-size: 0px;
-  min-height: 0px;
-  margin: 0px;
-  padding: 0px;
+.item-image-text {
+  font-size: 18px;
+  min-width: 36px;
+  margin-right: -4px;
 }
 
 .item-image {
-  margin-right: 14px;
-  -gtk-icon-transform: scale(0.9);
+  min-width: 36px;
+  margin-right: -4px;
+}
+
+.item-text-box {
+  padding: 8px 0;
+}
+
+.item-text {
+  font-weight: 500;
+}
+
+.item-subtext {
+  font-size: 11px;
+  opacity: 0.52;
+}
+
+child:selected .item-subtext {
+  color: @foreground;
 }
 
 .current {
   font-style: italic;
 }
 
+.keybinds,
 .keybind-hints {
-  background: @background;
+  opacity: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.error {
   padding: 10px;
-  margin-top: 10px;
+  color: #f7768e;
 }
-
-.preview {
-}
-

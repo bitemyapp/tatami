@@ -1,0 +1,17 @@
+# Capture › in the Omarchy menu (see omarchy.toml).
+name = "omarchy-capture"
+name_pretty = "Capture"
+parent = "omarchy-trigger"
+fixed_order = true
+hide_from_providerlist = true
+action = "%VALUE%"
+
+[[entries]]
+text = "Screenshot"
+icon = ""
+value = "omarchy screenshot"
+
+[[entries]]
+text = "Color"
+icon = "󰃉"
+value = "omarchy color-picker"

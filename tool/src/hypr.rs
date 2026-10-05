@@ -5,12 +5,45 @@ use crate::util::{Result, output, run};
 use serde_json::Value;
 
 pub fn json(what: &str) -> Result<Value> {
-    serde_json::from_str(&output("hyprctl", &["-j", what])?)
-        .map_err(|error| format!("hyprctl {what}: {error}"))
+    json_args(&[what])
+}
+
+pub fn json_args(what: &[&str]) -> Result<Value> {
+    let mut args = vec!["-j"];
+    args.extend_from_slice(what);
+    serde_json::from_str(&output("hyprctl", &args)?)
+        .map_err(|error| format!("hyprctl {}: {error}", what.join(" ")))
 }
 
 pub fn dispatch(expression: &str) -> bool {
     run("hyprctl", &["dispatch", expression])
+}
+
+/// Run Lua in the compositor. With a Lua configuration Hyprland 0.56 has no
+/// `hyprctl keyword`; `eval` changes settings until the next reload.
+pub fn eval(code: &str) -> bool {
+    output("hyprctl", &["eval", code]).is_ok_and(|reply| reply.trim() == "ok")
+}
+
+/// A window address as `hyprctl` prints it, safe to embed in Lua.
+pub fn address(window: &Value) -> Option<&str> {
+    window["address"]
+        .as_str()
+        .filter(|address| is_address(address))
+}
+
+fn is_address(address: &str) -> bool {
+    address.len() > 2
+        && address.starts_with("0x")
+        && address[2..].bytes().all(|b| b.is_ascii_hexdigit())
+}
+
+/// Output names such as eDP-1 or DP-3, safe to embed in Lua.
+pub fn safe_name(name: &str) -> bool {
+    !name.is_empty()
+        && name
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b"._-".contains(&b))
 }
 
 pub fn dpms(on: bool) {
@@ -44,9 +77,7 @@ pub fn window_addresses(clients: &Value) -> Vec<String> {
         .into_iter()
         .flatten()
         .filter_map(|client| client["address"].as_str())
-        .filter(|address| {
-            address.starts_with("0x") && address[2..].bytes().all(|b| b.is_ascii_hexdigit())
-        })
+        .filter(|address| is_address(address))
         .map(str::to_owned)
         .collect()
 }

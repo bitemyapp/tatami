@@ -1,12 +1,13 @@
-/* Omarchy-style Waybar, adapted from Omarchy 3.8.4 (MIT, see ../../LICENSE). Tokyo Night. */
+/* Omarchy-style top bar after Omarchy 4's bar (shell/plugins/bar/Bar.qml, the
+ * qs.Ui bar buttons and the Tokyo Night shell theme; MIT, see ../../LICENSE):
+ * 26px tall, JetBrainsMono Nerd Font 12px, 8px edge margins, 20px workspace
+ * slots, 21px indicator slots and 27px icon slots with 13px glyphs. */
 @define-color foreground #a9b1d6;
 @define-color background #1a1b26;
-@define-color accent #7aa2f7;
 
 * {
   background-color: @background;
   color: @foreground;
-
   border: none;
   border-radius: 0;
   min-height: 0;
@@ -22,68 +23,77 @@
   margin-right: 8px;
 }
 
+#custom-omarchy {
+  padding: 0 7.5px;
+}
+
 #workspaces button {
   all: initial;
-  padding: 0 6px;
-  margin: 0 1.5px;
-  min-width: 9px;
+  min-width: 20px;
+  margin: 0 0.5px;
+  padding: 0;
 }
 
 #workspaces button.empty {
   opacity: 0.5;
 }
 
-#cpu,
-#battery,
-#pulseaudio,
-#custom-omarchy {
-  min-width: 12px;
-  margin: 0 7.5px;
+/* Indicators keep their slot beside the clock; inactive ones show on hover. */
+#custom-nightlight,
+#custom-silence,
+#custom-stay-awake {
+  min-width: 21px;
+  padding: 0;
+  font-size: 10px;
 }
 
-#custom-omarchy {
-  color: @accent;
-  font-size: 14px;
+#custom-nightlight.inactive,
+#custom-silence.inactive,
+#custom-stay-awake.inactive {
+  opacity: 0;
 }
 
-#tray {
-  margin-right: 16px;
-}
-
-#bluetooth {
-  margin-right: 17px;
-}
-
-#network {
-  margin-right: 13px;
-}
-
-#custom-expand-icon {
-  margin-right: 18px;
-}
-
-tooltip {
-  padding: 2px;
+#custom-nightlight.inactive:hover,
+#custom-silence.inactive:hover,
+#custom-stay-awake.inactive:hover {
+  opacity: 0.45;
 }
 
 #clock {
-  margin-left: 8.75px;
+  padding: 0 8.5px;
+}
+
+/* As wide as the indicators, so the clock sits at the exact center. */
+#custom-center-balance {
+  min-width: 63px;
+  padding: 0;
+}
+
+#custom-expand-icon,
+#bluetooth,
+#network,
+#pulseaudio,
+#custom-display,
+#battery {
+  min-width: 27px;
+  padding: 0;
+  font-size: 13px;
+}
+
+#tray {
+  padding: 0 6px;
+}
+
+tooltip {
+  background-color: alpha(@background, 0.97);
+  border: 1px solid @foreground;
+  padding: 4px 2px;
+}
+
+tooltip label {
+  background-color: transparent;
 }
 
 .hidden {
   opacity: 0;
-}
-
-#custom-idle-indicator,
-#custom-notification-silencing-indicator {
-  min-width: 12px;
-  margin-left: 5px;
-  margin-right: 0;
-  font-size: 10px;
-  padding-bottom: 1px;
-}
-
-#custom-idle-indicator.active,
-#custom-notification-silencing-indicator.active {
-  color: #a55555;
 }

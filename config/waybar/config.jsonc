@@ -1,4 +1,7 @@
-// Omarchy-style Waybar, adapted from Omarchy 3.8.4 (MIT, see ../../LICENSE).
+// Omarchy-style top bar after Omarchy 4's bar (shell/plugins/bar and
+// config/omarchy/shell.json; MIT, see ../../LICENSE): the menu button and
+// workspaces on the left; the indicators, a centered clock and its balance in
+// the middle; tray, Bluetooth, network, audio, display and power on the right.
 {
   "reload_style_on_change": true,
   "layer": "top",
@@ -10,23 +13,31 @@
     "hyprland/workspaces"
   ],
   "modules-center": [
+    "custom/nightlight",
+    "custom/silence",
+    "custom/stay-awake",
     "clock",
-    "custom/idle-indicator",
-    "custom/notification-silencing-indicator"
+    "custom/center-balance"
   ],
   "modules-right": [
     "group/tray-expander",
     "bluetooth",
     "network",
     "pulseaudio",
-    "cpu",
+    "custom/display",
     "battery"
   ],
+  "custom/omarchy": {
+    "format": "",
+    "on-click": "omarchy menu",
+    "on-click-right": "omarchy terminal",
+    "tooltip-format": "Omarchy menu\n\nSuper + Space"
+  },
   "hyprland/workspaces": {
     "on-click": "activate",
     "format": "{icon}",
     "format-icons": {
-      "default": "",
+      "default": "",
       "1": "1",
       "2": "2",
       "3": "3",
@@ -47,22 +58,74 @@
       "5": []
     }
   },
-  "custom/omarchy": {
-    "format": "",
-    "on-click": "omarchy menu",
-    "on-click-right": "omarchy terminal",
-    "tooltip-format": "Menu\n\nSuper + Alt + Space"
+  "custom/nightlight": {
+    "exec": "omarchy indicator nightlight",
+    "return-type": "json",
+    "interval": "once",
+    "signal": 11,
+    "on-click": "omarchy toggle nightlight"
   },
-  "cpu": {
-    "interval": 5,
-    "format": "󰍛",
-    "on-click": "omarchy tui btop",
-    "on-click-right": "omarchy terminal"
+  "custom/silence": {
+    "exec": "omarchy indicator notifications",
+    "return-type": "json",
+    "interval": "once",
+    "signal": 10,
+    "on-click": "omarchy toggle notifications"
+  },
+  "custom/stay-awake": {
+    "exec": "omarchy indicator idle",
+    "return-type": "json",
+    "interval": "once",
+    "signal": 9,
+    "on-click": "omarchy toggle idle"
   },
   "clock": {
     "format": "{:L%A %H:%M}",
-    "format-alt": "{:L%d %B W%V %Y}",
+    "format-alt": "{:L%e %B W%V %Y}",
+    "format-alt-click": "click-right",
+    "tooltip-format": "<tt>{calendar}</tt>",
+    "calendar": {
+      "mode": "month",
+      "weeks-pos": "left",
+      "format": {
+        "weeks": "<span color='#565f89'>{:%V}</span>",
+        "weekdays": "<span color='#565f89'>{}</span>",
+        "today": "<span color='#7aa2f7'><b>{}</b></span>"
+      }
+    }
+  },
+  "custom/center-balance": {
+    "format": " ",
     "tooltip": false
+  },
+  "group/tray-expander": {
+    "orientation": "inherit",
+    "drawer": {
+      "transition-duration": 600,
+      "children-class": "tray-group-item"
+    },
+    "modules": [
+      "custom/expand-icon",
+      "tray"
+    ]
+  },
+  "custom/expand-icon": {
+    "format": "",
+    "tooltip": false
+  },
+  "tray": {
+    "icon-size": 12,
+    "spacing": 15
+  },
+  "bluetooth": {
+    "format": "󰂯",
+    "format-off": "󰂲",
+    "format-disabled": "󰂲",
+    "format-connected": "󰂱",
+    "format-no-controller": "",
+    "tooltip-format": "Devices connected: {num_connections}",
+    "on-click": "omarchy tui bluetui",
+    "on-click-right": "omarchy bluetooth-toggle"
   },
   "network": {
     "format-icons": [
@@ -74,20 +137,44 @@
     ],
     "format": "{icon}",
     "format-wifi": "{icon}",
-    "format-ethernet": "󰀂",
+    "format-ethernet": "󰈀",
     "format-disconnected": "󰤮",
     "tooltip-format-wifi": "{essid} ({frequency} GHz)",
     "tooltip-format-ethernet": "Connected",
     "tooltip-format-disconnected": "Disconnected",
     "interval": 3,
-    "spacing": 1,
     "on-click": "omarchy tui nmtui"
   },
+  "pulseaudio": {
+    "format": "{icon}",
+    "format-muted": "",
+    "format-icons": {
+      "headphone": "󰋋",
+      "headset": "󰋋",
+      "default": [
+        "",
+        "",
+        ""
+      ]
+    },
+    "tooltip-format": "Playing at {volume}%",
+    "on-click": "omarchy tui wiremix",
+    "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+    "on-scroll-up": "omarchy volume raise",
+    "on-scroll-down": "omarchy volume lower"
+  },
+  "custom/display": {
+    "format": "󰍹",
+    "tooltip": false,
+    "on-click": "omarchy menu display",
+    "on-scroll-up": "omarchy brightness +5%",
+    "on-scroll-down": "omarchy brightness 5%-"
+  },
   "battery": {
-    "format": "{capacity}% {icon}",
-    "format-discharging": "{icon}",
-    "format-charging": "{icon}",
-    "format-plugged": "",
+    "format": "{icon}",
+    "format-alt": "{capacity}% {icon}",
+    "format-alt-click": "click-right",
+    "format-full": "󰂅",
     "format-icons": {
       "charging": [
         "󰢜",
@@ -114,75 +201,13 @@
         "󰁹"
       ]
     },
-    "format-full": "󰂅",
     "tooltip-format-discharging": "{power:>1.0f}W↓ {capacity}%",
     "tooltip-format-charging": "{power:>1.0f}W↑ {capacity}%",
     "interval": 5,
-    "on-click": "omarchy menu power",
+    "on-click": "omarchy power-profile",
     "states": {
       "warning": 20,
       "critical": 10
     }
-  },
-  "bluetooth": {
-    "format": "",
-    "format-off": "󰂲",
-    "format-disabled": "󰂲",
-    "format-connected": "󰂱",
-    "format-no-controller": "",
-    "tooltip-format": "Devices connected: {num_connections}",
-    "on-click": "omarchy tui bluetui"
-  },
-  "pulseaudio": {
-    "format": "{icon}",
-    "on-click": "omarchy tui wiremix",
-    "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
-    "tooltip-format": "Playing at {volume}%",
-    "scroll-step": 5,
-    "format-muted": "",
-    "format-icons": {
-      "headphone": "",
-      "headset": "",
-      "default": [
-        "",
-        "",
-        ""
-      ]
-    }
-  },
-  "group/tray-expander": {
-    "orientation": "inherit",
-    "drawer": {
-      "transition-duration": 600,
-      "children-class": "tray-group-item"
-    },
-    "modules": [
-      "custom/expand-icon",
-      "tray"
-    ]
-  },
-  "custom/expand-icon": {
-    "format": "",
-    "tooltip": false,
-    "on-scroll-up": "",
-    "on-scroll-down": "",
-    "on-scroll-left": "",
-    "on-scroll-right": ""
-  },
-  "custom/idle-indicator": {
-    "on-click": "omarchy toggle idle",
-    "exec": "omarchy indicator idle",
-    "signal": 9,
-    "return-type": "json"
-  },
-  "custom/notification-silencing-indicator": {
-    "on-click": "omarchy toggle notifications",
-    "exec": "omarchy indicator notifications",
-    "signal": 10,
-    "return-type": "json"
-  },
-  "tray": {
-    "icon-size": 12,
-    "spacing": 17
   }
 }

@@ -1,0 +1,32 @@
+# Learn › in the Omarchy menu (see omarchy.toml).
+name = "omarchy-learn"
+name_pretty = "Learn"
+parent = "omarchy"
+fixed_order = true
+hide_from_providerlist = true
+action = "%VALUE%"
+
+[[entries]]
+text = "Keybindings"
+icon = ""
+value = "omarchy keybindings"
+
+[[entries]]
+text = "Omarchy"
+icon = ""
+value = "omarchy browser https://omarchy.org/manual/"
+
+[[entries]]
+text = "Hyprland"
+icon = ""
+value = "omarchy browser https://wiki.hypr.land/"
+
+[[entries]]
+text = "NixOS"
+icon = ""
+value = "omarchy browser https://nixos.org/manual/nixos/stable/"
+
+[[entries]]
+text = "Bash"
+icon = "󱆃"
+value = "omarchy browser https://devhints.io/bash"

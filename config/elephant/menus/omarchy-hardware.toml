@@ -1,0 +1,17 @@
+# Hardware › in the Omarchy menu (see omarchy.toml).
+name = "omarchy-hardware"
+name_pretty = "Hardware"
+parent = "omarchy-trigger"
+fixed_order = true
+hide_from_providerlist = true
+action = "%VALUE%"
+
+[[entries]]
+text = "Laptop Display"
+icon = "󰛧"
+value = "omarchy laptop-display"
+
+[[entries]]
+text = "Touchpad"
+icon = "󰟸"
+value = "omarchy touchpad toggle"

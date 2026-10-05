@@ -109,6 +109,51 @@ pub fn brightness(step: &str) {
     ]);
 }
 
+/// The next keyboard backlight level for up, down or cycle (Fn+Space style).
+pub fn keyboard_level(current: u32, max: u32, step: &str) -> u32 {
+    match step {
+        "up" => (current + 1).min(max),
+        "down" => current.saturating_sub(1),
+        _ if current >= max => 0,
+        _ => current + 1,
+    }
+}
+
+/// Keyboard backlight keys, with the level on the on-screen display.
+pub fn keyboard_brightness(step: &str) {
+    let mut names: Vec<String> = std::fs::read_dir("/sys/class/leds")
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter_map(|entry| entry.file_name().into_string().ok())
+        .filter(|name| name.contains("kbd_backlight"))
+        .collect();
+    names.sort();
+    let Some(device) = names.first() else {
+        return;
+    };
+    let number = |what: &str| {
+        util::output("brightnessctl", &["-d", device, what])
+            .ok()
+            .and_then(|text| text.trim().parse::<u32>().ok())
+    };
+    let (Some(current), Some(max)) = (number("get"), number("max")) else {
+        return;
+    };
+    let level = keyboard_level(current, max, step);
+    util::run("brightnessctl", &["-d", device, "set", &level.to_string()]);
+    let progress = format!(
+        "{:.2}",
+        (f64::from(level) / f64::from(max.max(1))).max(0.01)
+    );
+    osd(&[
+        "--custom-icon",
+        "keyboard-brightness-symbolic",
+        "--custom-progress",
+        &progress,
+    ]);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -143,5 +188,13 @@ mod tests {
             Some(50)
         );
         assert_eq!(machine_percent("bad"), None);
+    }
+    #[test]
+    fn keyboard_levels_step_and_cycle() {
+        assert_eq!(keyboard_level(1, 2, "up"), 2);
+        assert_eq!(keyboard_level(2, 2, "up"), 2);
+        assert_eq!(keyboard_level(0, 2, "down"), 0);
+        assert_eq!(keyboard_level(2, 2, "cycle"), 0);
+        assert_eq!(keyboard_level(0, 2, "cycle"), 1);
     }
 }

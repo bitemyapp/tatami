@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Terminals and terminal applications. Alacritty finds the Omarchy-style
-//! configuration through XDG_CONFIG_DIRS, which the session prepends with
-//! /etc/xdg/omarchy; a user's own ~/.config/alacritty still takes precedence.
+//! Terminals and terminal applications in foot, Omarchy 4's terminal. foot
+//! finds the Omarchy-style configuration through XDG_CONFIG_DIRS, which the
+//! session prepends with /etc/xdg/omarchy; a user's own ~/.config/foot
+//! still takes precedence.
 use crate::{CONFIG, hypr, util};
 use std::{fs, path::Path};
 
@@ -71,18 +72,29 @@ pub fn active_cwd() -> String {
 
 /// Open a terminal in the focused terminal's directory.
 pub fn terminal(command: &[String]) {
-    let cwd = active_cwd();
-    let mut args = vec!["--working-directory", cwd.as_str()];
+    let cwd = format!("--working-directory={}", active_cwd());
+    let mut args = vec![cwd.as_str()];
     if !command.is_empty() {
-        args.push("-e");
+        args.push("--");
         args.extend(command.iter().map(String::as_str));
     }
-    util::spawn("alacritty", &args);
+    util::launch("foot", &args);
 }
 
-/// A terminal application in a floating window (class org.omarchy.<name>),
-/// focusing an existing one instead of opening a duplicate.
-pub fn tui(command: &[String], hold: bool) {
+/// How a terminal application opens.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Tui {
+    /// A new window every time.
+    New,
+    /// Focus a window already showing it (panels such as audio controls).
+    Focus,
+    /// Keep the window after the program exits (About).
+    Hold,
+}
+
+/// A terminal application in a window with app-id org.omarchy.<name>, as
+/// omarchy-launch-tui does; the window rules float the panel-like ones.
+pub fn tui(command: &[String], mode: Tui) {
     let Some(program) = command.first() else {
         return;
     };
@@ -91,33 +103,67 @@ pub fn tui(command: &[String], hold: bool) {
         .and_then(|n| n.to_str())
         .unwrap_or("tui");
     let class = format!("org.omarchy.{name}");
-    if let Ok(clients) = hypr::json("clients")
+    if mode == Tui::Focus
+        && let Ok(clients) = hypr::json("clients")
         && let Some(address) = clients
             .as_array()
             .into_iter()
             .flatten()
             .find(|client| client["class"].as_str() == Some(class.as_str()))
-            .and_then(|client| client["address"].as_str())
+            .and_then(hypr::address)
     {
         hypr::dispatch(&format!(
             "hl.dsp.focus({{ window = \"address:{address}\" }})"
         ));
         return;
     }
-    let mut args = vec!["--class", class.as_str()];
-    if hold {
+    let app_id = format!("--app-id={class}");
+    let mut args = vec![app_id.as_str()];
+    if mode == Tui::Hold {
         args.push("--hold");
     }
-    args.push("-e");
+    args.push("--");
     args.extend(command.iter().map(String::as_str));
     // btop reads only ~/.config/btop; until the user has their own
-    // configuration, use the Omarchy-style one (Tokyo Night).
+    // configuration, use the Omarchy-style one and its Tokyo Night theme.
     let btop = format!("{CONFIG}/btop/btop.conf");
+    let themes = format!("{CONFIG}/btop/themes");
     let own = format!("{}/.config/btop/btop.conf", util::home());
     if name == "btop" && command.len() == 1 && !Path::new(&own).exists() {
-        args.extend(["--config", btop.as_str()]);
+        args.extend(["--config", btop.as_str(), "--themes-dir", themes.as_str()]);
     }
-    util::spawn("alacritty", &args);
+    util::launch("foot", &args);
+}
+
+/// Terminal editors open in a terminal, others in their own window.
+pub fn is_terminal_editor(editor: &str) -> bool {
+    let name = Path::new(editor)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or(editor);
+    matches!(
+        name,
+        "nvim" | "vim" | "vi" | "nano" | "micro" | "hx" | "helix" | "kak" | "emacs" | "mg"
+    )
+}
+
+/// Super+Shift+N: the user's $EDITOR (NixOS defaults to nano).
+pub fn editor(files: &[String]) {
+    let configured = std::env::var("EDITOR").unwrap_or_default();
+    let editor = configured
+        .split_whitespace()
+        .next()
+        .filter(|program| util::which(program).is_some() || program.starts_with('/'))
+        .unwrap_or("nano")
+        .to_owned();
+    let mut command = vec![editor.clone()];
+    command.extend(files.iter().cloned());
+    if is_terminal_editor(&editor) {
+        tui(&command, Tui::New);
+    } else {
+        let args: Vec<&str> = files.iter().map(String::as_str).collect();
+        util::launch(&editor, &args);
+    }
 }
 
 #[cfg(test)]
@@ -137,5 +183,12 @@ mod tests {
         assert_eq!(parent_from_stat("123 (bash) S 77 123 123 0"), Some(77));
         assert_eq!(parent_from_stat("9 (a) b (c)) R 4 9 9"), Some(4));
         assert_eq!(parent_from_stat("garbage"), None);
+    }
+    #[test]
+    fn terminal_editors_open_in_a_terminal() {
+        assert!(is_terminal_editor("nano"));
+        assert!(is_terminal_editor("/run/current-system/sw/bin/nvim"));
+        assert!(!is_terminal_editor("code"));
+        assert!(!is_terminal_editor("gnome-text-editor"));
     }
 }

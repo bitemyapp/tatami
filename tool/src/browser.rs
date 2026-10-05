@@ -79,7 +79,7 @@ pub fn launch(args: &[String]) {
             }
         })
         .collect();
-    util::spawn(&program, &args);
+    util::launch(&program, &args);
 }
 
 #[cfg(test)]

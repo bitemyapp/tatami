@@ -1,0 +1,39 @@
+# Setup › in the Omarchy menu (see omarchy.toml).
+name = "omarchy-setup"
+name_pretty = "Setup"
+parent = "omarchy"
+fixed_order = true
+hide_from_providerlist = true
+action = "%VALUE%"
+
+[[entries]]
+text = "Audio"
+icon = "󰓃"
+value = "omarchy tui wiremix"
+
+[[entries]]
+text = "Network"
+icon = "󰛳"
+value = "omarchy tui nmtui"
+keywords = ["wifi", "network"]
+
+[[entries]]
+text = "Bluetooth"
+icon = "󰂯"
+value = "omarchy tui bluetui"
+
+[[entries]]
+text = "Power Profile"
+icon = "󱐋"
+value = "omarchy power-profile"
+
+[[entries]]
+text = "Display"
+icon = "󰍹"
+submenu = "omarchy-display"
+keywords = ["monitors", "brightness", "scale"]
+
+[[entries]]
+text = "Hyprland"
+icon = ""
+value = "omarchy edit-config"

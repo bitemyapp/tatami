@@ -1,33 +1,58 @@
-/* Omarchy-style on-screen display, adapted from Omarchy 3.8.4 (MIT). Tokyo Night. */
-@define-color background-color #1a1b26;
-@define-color border-color #a9b1d6;
-@define-color label #a9b1d6;
-@define-color image #a9b1d6;
-@define-color progress #7aa2f7;
+/* Omarchy-style on-screen display after Omarchy 4's OSD card
+ * (shell/plugins/osd/Osd.qml; MIT, see ../../LICENSE) in Tokyo Night: a square
+ * card with a 2px accent border and 16px padding, a 6px bar filled with the
+ * accent over a dimmed track, and a bold 14px value. */
+@define-color background #1a1b26;
+@define-color foreground #a9b1d6;
+@define-color accent #7aa2f7;
 
-window {
+window#osd {
   border-radius: 0;
-  opacity: 0.97;
-  border: 2px solid @border-color;
-
-  background-color: @background-color;
+  border: 2px solid @accent;
+  background: alpha(@background, 0.97);
 }
 
-label {
+window#osd #container {
+  margin: 16px;
+}
+
+window#osd image {
+  color: @foreground;
+}
+
+window#osd label {
   font-family: 'JetBrainsMono Nerd Font';
-  font-size: 11pt;
-
-  color: @label;
+  font-size: 14px;
+  font-weight: bold;
+  color: @foreground;
 }
 
-image {
-  color: @image;
-}
-
-progressbar {
+window#osd progressbar,
+window#osd segmentedprogress {
+  min-height: 6px;
+  min-width: 142px;
   border-radius: 0;
+  background: transparent;
+  border: none;
 }
 
-progress {
-  background-color: @progress;
+window#osd trough,
+window#osd segment {
+  min-height: 6px;
+  border-radius: 0;
+  border: none;
+  background: alpha(@foreground, 0.45);
+}
+
+window#osd progress,
+window#osd segment.active {
+  min-height: 6px;
+  border-radius: 0;
+  border: none;
+  background: @accent;
+}
+
+window#osd progressbar:disabled,
+window#osd image:disabled {
+  opacity: 0.5;
 }

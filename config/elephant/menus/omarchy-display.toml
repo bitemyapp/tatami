@@ -1,0 +1,32 @@
+# Display › in the Omarchy menu (see omarchy.toml).
+name = "omarchy-display"
+name_pretty = "Display"
+parent = "omarchy-setup"
+fixed_order = true
+hide_from_providerlist = true
+action = "%VALUE%"
+
+[[entries]]
+text = "Brightness Up"
+icon = "󰃠"
+value = "omarchy brightness +5%"
+
+[[entries]]
+text = "Brightness Down"
+icon = "󰃞"
+value = "omarchy brightness 5%-"
+
+[[entries]]
+text = "Scale Up"
+icon = "󰛬"
+value = "omarchy scale up"
+
+[[entries]]
+text = "Scale Down"
+icon = "󰛭"
+value = "omarchy scale down"
+
+[[entries]]
+text = "Laptop Display"
+icon = "󰛧"
+value = "omarchy laptop-display"

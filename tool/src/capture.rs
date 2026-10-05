@@ -60,13 +60,11 @@ pub fn screenshot(mode: &str) {
     // Pressing the key again while selecting cancels the selection.
     let selecting = util::pids_named(&["slurp"]);
     if !selecting.is_empty() {
-        for pid in selecting {
-            unsafe {
-                libc::kill(pid, libc::SIGTERM);
-            }
-        }
+        util::terminate(&selecting);
         return;
     }
+    // From the menu: keep it out of the frozen frame.
+    crate::menu::before_capture();
     let home = util::home();
     let dir = pictures_dir(
         &fs::read_to_string(format!("{home}/.config/user-dirs.dirs")).unwrap_or_default(),
@@ -74,6 +72,7 @@ pub fn screenshot(mode: &str) {
     );
     if fs::create_dir_all(&dir).is_err() {
         util::notify(
+            "\u{f030}",
             "Screenshot failed",
             &format!("Cannot create {}", dir.display()),
         );
@@ -139,10 +138,9 @@ fn announce(path: &std::path::Path) {
     }
     // The notification waits for a click; let it outlive this command.
     if let Some(path) = path.to_str()
-        && let Ok(me) = std::env::current_exe()
-        && let Some(me) = me.to_str()
+        && let Some(me) = util::me()
     {
-        util::spawn(me, &["screenshot-notify", path]);
+        util::spawn(&me, &["screenshot-notify", path]);
     }
 }
 
@@ -185,11 +183,7 @@ pub fn color_picker() {
     if running.is_empty() {
         util::spawn("hyprpicker", &["-a"]);
     } else {
-        for pid in running {
-            unsafe {
-                libc::kill(pid, libc::SIGTERM);
-            }
-        }
+        util::terminate(&running);
     }
 }
 

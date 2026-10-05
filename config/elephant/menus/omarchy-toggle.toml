@@ -1,0 +1,42 @@
+# Toggle › in the Omarchy menu (see omarchy.toml).
+name = "omarchy-toggle"
+name_pretty = "Toggle"
+parent = "omarchy-trigger"
+fixed_order = true
+hide_from_providerlist = true
+action = "%VALUE%"
+
+[[entries]]
+text = "Stay Awake"
+icon = "󰅶"
+value = "omarchy toggle idle"
+
+[[entries]]
+text = "Notifications"
+icon = "󰂛"
+value = "omarchy toggle notifications"
+
+[[entries]]
+text = "Nightlight"
+icon = "󰔎"
+value = "omarchy toggle nightlight"
+
+[[entries]]
+text = "Menu Bar"
+icon = "󰍜"
+value = "omarchy toggle bar"
+
+[[entries]]
+text = "Workspace Layout"
+icon = "󱂬"
+value = "omarchy toggle layout"
+
+[[entries]]
+text = "Window Gaps"
+icon = ""
+value = "omarchy toggle gaps"
+
+[[entries]]
+text = "1-Window Ratio"
+icon = ""
+value = "omarchy toggle aspect"

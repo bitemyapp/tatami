@@ -46,6 +46,37 @@ pub fn spawn(program: &str, args: &[&str]) {
         .spawn();
 }
 
+/// Start an application in its own systemd scope in app-graphical.slice, as
+/// Omarchy does with uwsm-app. Otherwise it would run inside the
+/// compositor's unit, where systemd-oomd under memory pressure would stop the
+/// whole session instead of the one application. A scope runs the program
+/// from here, so it keeps this session's environment (XDG_CONFIG_DIRS with
+/// the Omarchy configuration), which uwsm-app's daemon would not pass on.
+pub fn launch(program: &str, args: &[&str]) {
+    if which("systemd-run").is_some() {
+        let mut full = vec![
+            "--user",
+            "--scope",
+            "--quiet",
+            "--collect",
+            "--slice=app-graphical.slice",
+            "--",
+            program,
+        ];
+        full.extend_from_slice(args);
+        spawn("systemd-run", &full);
+    } else {
+        spawn(program, args);
+    }
+}
+
+/// This helper, for commands that run it again.
+pub fn me() -> Option<String> {
+    std::env::current_exe()
+        .ok()
+        .and_then(|path| path.to_str().map(str::to_owned))
+}
+
 /// Feed `input` to a program's stdin and return its stdout.
 pub fn filter(program: &str, args: &[&str], input: &[u8]) -> Result<String> {
     let mut child = Command::new(program)
@@ -65,8 +96,15 @@ pub fn filter(program: &str, args: &[&str], input: &[u8]) -> Result<String> {
     Ok(String::from_utf8_lossy(&out.stdout).into_owned())
 }
 
-pub fn notify(summary: &str, body: &str) {
-    let mut args = vec!["-u", "low", summary];
+/// A low-urgency notification. Omarchy draws the glyph in the icon slot;
+/// Mako has none, so the glyph leads the summary.
+pub fn notify(glyph: &str, summary: &str, body: &str) {
+    let summary = if glyph.is_empty() {
+        summary.to_owned()
+    } else {
+        format!("{glyph}    {summary}")
+    };
+    let mut args = vec!["-u", "low", summary.as_str()];
     if !body.is_empty() {
         args.push(body);
     }
@@ -91,6 +129,15 @@ pub fn home() -> String {
     std::env::var("HOME").unwrap_or_else(|_| "/".into())
 }
 
+/// $XDG_STATE_HOME/omarchy; an unset or relative variable means ~/.local/state.
+pub fn state_dir() -> std::path::PathBuf {
+    let base = std::env::var("XDG_STATE_HOME")
+        .ok()
+        .filter(|dir| dir.starts_with('/'))
+        .unwrap_or_else(|| format!("{}/.local/state", home()));
+    std::path::Path::new(&base).join("omarchy")
+}
+
 /// Processes whose command name matches, from /proc.
 pub fn pids_named(names: &[&str]) -> Vec<i32> {
     let Ok(entries) = std::fs::read_dir("/proc") else {
@@ -104,6 +151,14 @@ pub fn pids_named(names: &[&str]) -> Vec<i32> {
                 .is_ok_and(|comm| names.contains(&comm.trim()))
         })
         .collect()
+}
+
+pub fn terminate(pids: &[i32]) {
+    for pid in pids {
+        unsafe {
+            libc::kill(*pid, libc::SIGTERM);
+        }
+    }
 }
 
 /// Ask Waybar to refresh a custom module bound to `signal` (SIGRTMIN+n).

@@ -1,114 +1,83 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Walker dmenu menus, adapted from Omarchy's menu without its Arch package,
-//! update and theme-installation entries.
-use crate::{power, util};
+//! The Omarchy menu in Walker. Its tree is Elephant menu definitions in
+//! /etc/xdg/omarchy/elephant/menus, after Omarchy 4's omarchy-menu.jsonc
+//! without its Arch package, update and theme entries. This opens it at the
+//! root or a submenu, opens the application list, and shows the pickers whose
+//! entries are only known at run time.
+use crate::{hypr, util};
+use std::{thread, time::Duration};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Action {
-    Menu(&'static str),
-    /// Run this helper with arguments.
-    Helper(&'static [&'static str]),
-    /// Run another program.
-    Program(&'static [&'static str]),
-    Launcher,
+/// Submenus that can be opened directly, with the title Omarchy gives them.
+pub const MENUS: &[(&str, &str)] = &[
+    ("learn", "Learn"),
+    ("trigger", "Trigger"),
+    ("capture", "Capture"),
+    ("toggle", "Toggle"),
+    ("hardware", "Hardware"),
+    ("setup", "Setup"),
+    ("display", "Display"),
+    ("system", "System"),
+];
+
+/// Walker arguments for a menu. The root uses the "omarchy" provider set,
+/// whose search also finds applications, as Omarchy's root menu does.
+pub fn walker_args(name: &str) -> Option<Vec<String>> {
+    if matches!(name, "" | "root") {
+        return Some(vec![
+            "-s".into(),
+            "omarchy".into(),
+            "-p".into(),
+            "Go…".into(),
+        ]);
+    }
+    let (_, title) = MENUS.iter().find(|(id, _)| *id == name)?;
+    Some(vec![
+        "-m".into(),
+        format!("menus:omarchy-{name}"),
+        "-p".into(),
+        format!("{title}…"),
+    ])
 }
 
-pub struct Item {
-    pub icon: &'static str,
-    pub label: &'static str,
-    pub action: Action,
-}
-impl Item {
-    pub fn line(&self) -> String {
-        format!("{}  {}", self.icon, self.label)
+/// Super+Space, Super+Escape and the bar's menu button. Walker closes
+/// itself when asked to open while open, so the same key toggles the menu.
+pub fn show(name: &str) {
+    if let Some(args) = walker_args(name) {
+        let args: Vec<&str> = args.iter().map(String::as_str).collect();
+        util::spawn("walker", &args);
     }
 }
 
-const fn item(icon: &'static str, label: &'static str, action: Action) -> Item {
-    Item {
-        icon,
-        label,
-        action,
-    }
+fn walker_open() -> bool {
+    hypr::json("layers").is_ok_and(|layers| layers.to_string().contains("\"namespace\":\"walker\""))
 }
 
-/// Prompt and entries of a named menu. `hibernate` hides Hibernate when the
-/// machine has no swap to resume from.
-pub fn menu(name: &str, hibernate: bool) -> Option<(&'static str, Vec<Item>)> {
-    use Action::*;
-    Some(match name {
-        "main" => (
-            "Go",
-            vec![
-                item("\u{f003b}", "Apps", Launcher),
-                item("\u{f030}", "Capture", Menu("capture")),
-                item("\u{f050e}", "Toggle", Menu("toggle")),
-                item("\u{e615}", "Setup", Menu("setup")),
-                item("\u{f11c}", "Keybindings", Helper(&["keybindings"])),
-                item("\u{ea74}", "About", Helper(&["about"])),
-                item("\u{f011}", "System", Menu("system")),
-            ],
-        ),
-        "system" => {
-            let mut items = vec![
-                item("\u{f023}", "Lock", Helper(&["lock"])),
-                item("\u{f04b2}", "Suspend", Program(&["systemctl", "suspend"])),
-            ];
-            if hibernate {
-                items.push(item(
-                    "\u{f0901}",
-                    "Hibernate",
-                    Program(&["systemctl", "hibernate"]),
-                ));
-            }
-            items.extend([
-                item("\u{f0343}", "Logout", Helper(&["logout"])),
-                item("\u{f0709}", "Restart", Helper(&["reboot"])),
-                item("\u{f0425}", "Shutdown", Helper(&["shutdown"])),
-            ]);
-            ("System", items)
+/// A menu entry that opens another Walker view runs while the menu is
+/// still closing; wait for it, or Walker would take the request as "close".
+fn after_menu() {
+    for _ in 0..40 {
+        if !walker_open() {
+            return;
         }
-        "capture" => (
-            "Capture",
-            vec![
-                item("\u{f030}", "Screenshot", Helper(&["screenshot", "smart"])),
-                item(
-                    "\u{f030}",
-                    "Screenshot region",
-                    Helper(&["screenshot", "region"]),
-                ),
-                item(
-                    "\u{f030}",
-                    "Screenshot display",
-                    Helper(&["screenshot", "fullscreen"]),
-                ),
-                item("\u{f00c9}", "Color", Helper(&["color-picker"])),
-            ],
-        ),
-        "toggle" => (
-            "Toggle",
-            vec![
-                item("\u{f050e}", "Nightlight", Helper(&["toggle", "nightlight"])),
-                item("\u{f1ad6}", "Idle Lock", Helper(&["toggle", "idle"])),
-                item(
-                    "\u{f009b}",
-                    "Notifications",
-                    Helper(&["toggle", "notifications"]),
-                ),
-                item("\u{f035c}", "Top Bar", Helper(&["toggle", "bar"])),
-            ],
-        ),
-        "setup" => (
-            "Setup",
-            vec![
-                item("\u{e638}", "Audio", Helper(&["tui", "wiremix"])),
-                item("\u{f1eb}", "Wifi", Helper(&["tui", "nmtui"])),
-                item("\u{f00af}", "Bluetooth", Helper(&["tui", "bluetui"])),
-                item("\u{f140b}", "Power Profile", Menu("power")),
-            ],
-        ),
-        _ => return None,
-    })
+        thread::sleep(Duration::from_millis(25));
+    }
+}
+
+/// The application list (Super+Alt+Space, and Apps in the menu).
+pub fn apps() {
+    after_menu();
+    util::spawn("walker", &["-m", "desktopapplications", "-p", "Apps…"]);
+}
+
+/// Trigger › Emoji.
+pub fn emoji() {
+    after_menu();
+    util::spawn("walker", &["-m", "symbols", "-p", "Emojis…"]);
+}
+
+/// Wait for the menu to close before capturing the screen.
+pub fn before_capture() {
+    after_menu();
 }
 
 /// Profiles from `powerprofilesctl list` (the active one is marked `*`).
@@ -129,14 +98,14 @@ pub fn power_profiles(list: &str) -> Vec<(String, bool)> {
         .collect()
 }
 
-fn pick(prompt: &str, lines: &[String], current: Option<usize>) -> Option<String> {
+fn pick(prompt: &str, lines: &[String], current: Option<usize>, width: &str) -> Option<String> {
     let input = lines.join("\n");
     let placeholder = format!("{prompt}\u{2026}");
     let selected = current.map(|index| (index + 1).to_string());
     let mut args = vec![
         "--dmenu",
         "--width",
-        "295",
+        width,
         "--minheight",
         "1",
         "--maxheight",
@@ -152,56 +121,20 @@ fn pick(prompt: &str, lines: &[String], current: Option<usize>) -> Option<String
     lines.iter().find(|line| line.as_str() == chosen).cloned()
 }
 
-fn run_action(action: Action) {
-    match action {
-        Action::Helper(args) => {
-            if let Ok(me) = std::env::current_exe()
-                && let Some(me) = me.to_str()
-            {
-                util::spawn(me, args);
-            }
-        }
-        Action::Program(argv) => util::spawn(argv[0], &argv[1..]),
-        Action::Launcher => util::spawn("walker", &["-p", "Launch\u{2026}"]),
-        Action::Menu(_) => {}
+/// Setup › Power Profile and the bar's battery: the profiles this machine
+/// offers, with the active one selected.
+pub fn power_profile() {
+    after_menu();
+    let list = util::output("powerprofilesctl", &["list"]).unwrap_or_default();
+    let profiles = power_profiles(&list);
+    if profiles.is_empty() {
+        util::notify("\u{f140b}", "Power profiles are not available", "");
+        return;
     }
-}
-
-/// Show a menu. Escape returns to the main menu, or exits when the menu
-/// was opened directly (e.g. Super+Escape for System).
-pub fn show(start: &str) {
-    let direct = start != "main";
-    let mut name = start.to_owned();
-    let hibernate = power::hibernation_available();
-    loop {
-        if name == "power" {
-            let list = util::output("powerprofilesctl", &["list"]).unwrap_or_default();
-            let profiles = power_profiles(&list);
-            let lines: Vec<String> = profiles.iter().map(|(name, _)| name.clone()).collect();
-            let current = profiles.iter().position(|(_, current)| *current);
-            if let Some(profile) = pick("Power Profile", &lines, current) {
-                util::run("powerprofilesctl", &["set", &profile]);
-            }
-            return;
-        }
-        let Some((prompt, items)) = menu(&name, hibernate) else {
-            return;
-        };
-        let lines: Vec<String> = items.iter().map(Item::line).collect();
-        let Some(chosen) = pick(prompt, &lines, None) else {
-            if direct || name == "main" {
-                return;
-            }
-            name = "main".into();
-            continue;
-        };
-        let Some(item) = items.iter().find(|item| item.line() == chosen) else {
-            return;
-        };
-        match item.action {
-            Action::Menu(next) => name = next.into(),
-            action => return run_action(action),
-        }
+    let lines: Vec<String> = profiles.iter().map(|(name, _)| name.clone()).collect();
+    let current = profiles.iter().position(|(_, current)| *current);
+    if let Some(profile) = pick("Power Profile", &lines, current, "300") {
+        util::run("powerprofilesctl", &["set", &profile]);
     }
 }
 
@@ -234,8 +167,13 @@ pub fn combination(modmask: u64, key: &str) -> String {
         "code:19" => "0",
         "code:20" => "-",
         "code:21" => "=",
-        "mouse:272" => "LEFT CLICK",
-        "mouse:273" => "RIGHT CLICK",
+        "code:34" => "[",
+        "code:35" => "]",
+        "code:201" => "COPILOT",
+        "mouse:272" => "LEFT MOUSE BUTTON",
+        "mouse:273" => "RIGHT MOUSE BUTTON",
+        "mouse_down" => "SCROLL DOWN",
+        "mouse_up" => "SCROLL UP",
         other => other,
     };
     let upper = key.to_uppercase();
@@ -253,15 +191,17 @@ pub fn keybinding_lines(binds: &serde_json::Value) -> Vec<String> {
             let description = bind["description"].as_str()?;
             let key = bind["key"].as_str()?;
             let keys = combination(bind["modmask"].as_u64().unwrap_or(0), key);
-            Some(format!("{keys:<28} {description}"))
+            Some(format!("{keys:<32} {description}"))
         })
         .collect();
     lines.dedup();
     lines
 }
 
+/// Super+K and Learn › Keybindings: every described binding.
 pub fn keybindings() {
-    let lines = crate::hypr::json("binds")
+    after_menu();
+    let lines = hypr::json("binds")
         .map(|binds| keybinding_lines(&binds))
         .unwrap_or_default();
     let input = lines.join("\n");
@@ -284,31 +224,13 @@ pub fn keybindings() {
 mod tests {
     use super::*;
     #[test]
-    fn every_submenu_exists_and_labels_are_unique() {
-        for name in ["main", "system", "capture", "toggle", "setup"] {
-            for hibernate in [true, false] {
-                let (_, items) = menu(name, hibernate).unwrap();
-                let mut lines: Vec<_> = items.iter().map(Item::line).collect();
-                let count = lines.len();
-                lines.sort();
-                lines.dedup();
-                assert_eq!(lines.len(), count, "{name}");
-                for item in items {
-                    if let Action::Menu(next) = item.action {
-                        assert!(next == "power" || menu(next, hibernate).is_some());
-                    }
-                }
-            }
-        }
-        let has = |hibernate| {
-            menu("system", hibernate)
-                .unwrap()
-                .1
-                .iter()
-                .any(|item| item.label == "Hibernate")
-        };
-        assert!(has(true) && !has(false));
-        assert!(menu("install", true).is_none());
+    fn menus_open_at_the_root_or_a_submenu() {
+        assert_eq!(walker_args("").unwrap()[..2], ["-s", "omarchy"]);
+        assert_eq!(
+            walker_args("system").unwrap(),
+            ["-m", "menus:omarchy-system", "-p", "System…"]
+        );
+        assert!(walker_args("install").is_none());
     }
     #[test]
     fn power_profiles_parse_with_current_marker() {

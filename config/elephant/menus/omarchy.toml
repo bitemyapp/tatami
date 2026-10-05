@@ -1,0 +1,41 @@
+# The Omarchy menu, after Omarchy 4's default/omarchy/omarchy-menu.jsonc
+# (MIT, see ../../../LICENSE) without its Arch package, update and theme
+# entries. Entries run the `omarchy` helper; Escape returns to the parent.
+name = "omarchy"
+name_pretty = "Omarchy"
+fixed_order = true
+hide_from_providerlist = true
+action = "%VALUE%"
+
+[[entries]]
+text = "Apps"
+icon = "󰀻"
+value = "omarchy apps"
+keywords = ["app", "applications"]
+
+[[entries]]
+text = "Learn"
+icon = "󰧑"
+submenu = "omarchy-learn"
+
+[[entries]]
+text = "Trigger"
+icon = "󱓞"
+submenu = "omarchy-trigger"
+
+[[entries]]
+text = "Setup"
+icon = ""
+submenu = "omarchy-setup"
+keywords = ["settings"]
+
+[[entries]]
+text = "About"
+icon = ""
+value = "omarchy about"
+
+[[entries]]
+text = "System"
+icon = ""
+submenu = "omarchy-system"
+keywords = ["power-menu"]

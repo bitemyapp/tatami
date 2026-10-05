@@ -1,0 +1,31 @@
+# Trigger › in the Omarchy menu (see omarchy.toml).
+name = "omarchy-trigger"
+name_pretty = "Trigger"
+parent = "omarchy"
+fixed_order = true
+hide_from_providerlist = true
+action = "%VALUE%"
+
+[[entries]]
+text = "Emoji"
+icon = ""
+value = "omarchy emoji"
+keywords = ["emoji", "emojis"]
+
+[[entries]]
+text = "Capture"
+icon = ""
+submenu = "omarchy-capture"
+keywords = ["capture", "screenshot"]
+
+[[entries]]
+text = "Toggle"
+icon = "󰔎"
+submenu = "omarchy-toggle"
+keywords = ["toggle", "toggles"]
+
+[[entries]]
+text = "Hardware"
+icon = ""
+submenu = "omarchy-hardware"
+keywords = ["hardware", "hw"]
