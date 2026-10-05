@@ -1,0 +1,26 @@
+# Omarchy-style notifications, adapted from Omarchy 3.8.4 (MIT). Tokyo Night.
+anchor=top-right
+group-by=app-name,summary,body
+default-timeout=5000
+width=420
+outer-margin=20
+padding=10,15
+border-size=2
+max-icon-size=32
+font=JetBrainsMono Nerd Font 11
+text-color=#a9b1d6
+border-color=#7aa2f7
+background-color=#1a1b26
+
+[mode=do-not-disturb]
+invisible=true
+
+[mode=do-not-disturb app-name=notify-send]
+invisible=false
+
+[urgency=critical]
+default-timeout=0
+layer=overlay
+
+[summary~="Screenshot saved"]
+max-icon-size=80

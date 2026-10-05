@@ -1,0 +1,18 @@
+[package]
+name = "calamares-omarchy-tool"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0-or-later"
+description = "Session launcher and desktop commands for the Omarchy-style Hyprland session"
+publish = false
+
+[dependencies]
+libc = "=0.2.177"
+serde_json = "=1.0.145"
+
+[[bin]]
+name = "omarchy"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = "s"

@@ -1,0 +1,33 @@
+/* Omarchy-style on-screen display, adapted from Omarchy 3.8.4 (MIT). Tokyo Night. */
+@define-color background-color #1a1b26;
+@define-color border-color #a9b1d6;
+@define-color label #a9b1d6;
+@define-color image #a9b1d6;
+@define-color progress #7aa2f7;
+
+window {
+  border-radius: 0;
+  opacity: 0.97;
+  border: 2px solid @border-color;
+
+  background-color: @background-color;
+}
+
+label {
+  font-family: 'JetBrainsMono Nerd Font';
+  font-size: 11pt;
+
+  color: @label;
+}
+
+image {
+  color: @image;
+}
+
+progressbar {
+  border-radius: 0;
+}
+
+progress {
+  background-color: @progress;
+}
