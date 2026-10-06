@@ -157,6 +157,17 @@ let
     lib.nameValuePair "xdg/tatami/${lib.removePrefix "./" (lib.path.removePrefix ./config file)}" {
       source = file;
     };
+  # Walker picks a row layout per provider, and each menu is its own provider
+  # (menus:NAME), so every menu gets the row with the submenu chevron.
+  menuNames = [
+    "tatami-system"
+  ]
+  ++ map (lib.removeSuffix ".toml") (lib.attrNames (builtins.readDir ./config/elephant/menus));
+  menuRow =
+    name:
+    lib.nameValuePair "xdg/tatami/walker/themes/tatami-default/item_menus-${name}.xml" {
+      source = ./config/walker/themes/tatami-default/menu-item.xml;
+    };
   # Session units: started with wayland-session@tatami.target (uwsm names it
   # after the compositor command), so they never run in other desktops. A
   # target orders the units it wants before itself, and it precedes
@@ -194,6 +205,7 @@ in
     services.displayManager.sessionPackages = [ session ];
     environment.etc =
       lib.listToAttrs (map etcFile files)
+      // lib.listToAttrs (map menuRow menuNames)
       // {
         "xdg/tatami/hypr/hyprland.lua".source = hyprland;
         "xdg/tatami/elephant/menus/tatami-system.toml".source = systemMenu;
@@ -244,7 +256,20 @@ in
       tatami-swaybg = unit "Tatami background" "${lib.getExe pkgs.swaybg} -i ${configDir}/background -m fill";
       tatami-swayosd = unit "Tatami on-screen display" "${pkgs.swayosd}/bin/swayosd-server";
       tatami-hypridle = unit "Tatami idle locking" "${lib.getExe pkgs.hypridle} -c ${configDir}/hypr/hypridle.conf";
-      tatami-polkit = unit "Tatami authentication agent" "${pkgs.hyprpolkitagent}/libexec/hyprpolkitagent";
+      # Dark, in Tokyo Night: Qt's built-in KDE platform theme reads the
+      # agent's palette from config/polkit/kdeglobals. Set on this unit only,
+      # so neither the session nor the user's own KDE colors are involved.
+      tatami-polkit =
+        lib.recursiveUpdate
+          (unit "Tatami authentication agent" "${pkgs.hyprpolkitagent}/libexec/hyprpolkitagent")
+          {
+            environment = {
+              QT_QPA_PLATFORMTHEME = "kde";
+              KDE_SESSION_VERSION = "6";
+              QT_QUICK_CONTROLS_STYLE = "org.hyprland.style";
+              XDG_CONFIG_HOME = "${configDir}/polkit";
+            };
+          };
       tatami-elephant = unit "Tatami launcher backend" "${lib.getExe elephant}";
       tatami-walker =
         lib.recursiveUpdate (unit "Tatami launcher" "${lib.getExe pkgs.walker} --gapplication-service")
@@ -297,6 +322,8 @@ in
           color-scheme = "prefer-dark";
           gtk-theme = "Adwaita-dark";
           icon-theme = "Yaru-magenta";
+          cursor-theme = "Adwaita";
+          cursor-size = lib.gvariant.mkInt32 24;
         };
       }
     ];
@@ -307,6 +334,9 @@ in
       # Notification text (Omarchy 4's notification cards).
       pkgs.liberation_ttf
     ];
+    # Trigger › Capture › Screenrecord: gpu-screen-recorder, with the
+    # capability wrapper it needs to record a monitor or a region.
+    programs.gpu-screen-recorder.enable = true;
     environment.systemPackages = [
       tool
       pkgs.foot
@@ -321,6 +351,11 @@ in
       pkgs.grim
       pkgs.slurp
       pkgs.satty
+      # Trigger › Capture › Text and QR Code.
+      (pkgs.tesseract.override { enableLanguages = [ "eng" ]; })
+      pkgs.zbar
+      # Screen recording where gpu-screen-recorder cannot run.
+      pkgs.wf-recorder
       pkgs.wl-clipboard
       pkgs.libnotify
       pkgs.brightnessctl

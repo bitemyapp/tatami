@@ -49,12 +49,13 @@ branch has verified releases; `main` is reviewed work.
 
 | Component | Configuration |
 |---|---|
-| Look | Tokyo Night throughout, JetBrainsMono Nerd Font. Window gaps 5/10, a 2px `#7aa2f7` border, square corners, no blur or shadow, v4 animations, inactive windows at 0.985/0.96 opacity. NixOS artwork wallpaper, since Omarchy's wallpapers have unclear licenses |
-| Bar | Waybar, 26px. NixOS logo (menu), workspaces 1–5, a centered "Monday 10:23" clock with night-light, do-not-disturb and stay-awake indicators, then tray, Bluetooth, network, audio, display and battery |
-| Menu and launcher | Walker with Elephant. The v4 menu tree (Apps, Learn, Trigger, Setup, About, System) in v4's card style. Typing searches menu entries and applications together |
+| Look | Tokyo Night throughout, JetBrainsMono Nerd Font, the Adwaita cursor. Window gaps 5/10, a 2px `#7aa2f7` border, square corners, no blur or shadow, v4 animations, inactive windows at 0.985/0.96 opacity. NixOS artwork wallpaper, since Omarchy's wallpapers have unclear licenses |
+| Bar | Waybar, 26px. NixOS logo (menu), workspaces 1–5, a centered "Monday 10:23" clock with screen-recording, night-light, do-not-disturb and stay-awake indicators and the month on hover, then the tray (only while some application has an icon), Bluetooth, network, audio, display and battery |
+| Menu and launcher | Walker with Elephant. The v4 menu tree (Apps, Learn, Trigger, Setup, About, System) in v4's card style, with chevrons on submenus. Typing searches menu entries and applications together. Keybindings (Super+K) are listed in v4's order and format |
 | Notifications and OSD | Mako as v4's 380px accent-bordered cards; SwayOSD as v4's bottom card |
 | Lock and idle | hyprlock with PAM in v4's style; hypridle locks and turns off displays |
-| Panels | Wi-Fi as a Walker list over NetworkManager: networks by signal, a password prompt for new ones, the Wi-Fi switch and Network settings… (`nm-connection-editor`) for VPN, enterprise and hidden networks. The bar's network icon, Super+Ctrl+W and Setup › Wi-Fi all open it. Bluetooth is bluetui (it pairs devices that ask for a passkey), audio is wiremix |
+| Authentication | hyprpolkitagent in Tokyo Night, centered with the screen dimmed around it |
+| Panels | The bar's icons drop panels from the top right, under the bar, as v4's do. Network: the wired connection, Wi-Fi networks by signal with a password prompt for new ones, the Wi-Fi switch, the DNS provider (DHCP, Cloudflare, Google or custom servers) and Network settings… (`nm-connection-editor`) for VPN, enterprise and hidden networks. Display: brightness, scale and the laptop display. Power profile. Audio is wiremix and Bluetooth is bluetui (it pairs devices that ask for a passkey), in the same place; a second click closes them |
 | Terminal and tools | foot with v4's configuration, btop with the Tokyo Night theme, fastfetch, Nautilus, imv, mpv |
 | GTK applications | Dark Adwaita with Yaru icons, from a dconf profile selected only in this session |
 
@@ -74,8 +75,9 @@ The `tatami` helper (`tool/`) provides:
 - the menu: system (lock, suspend, hibernate when swap exists, logout,
   restart, shutdown), capture, toggles, hardware, display, audio, Wi-Fi,
   Bluetooth and power profile; the power key opens System, as in Omarchy
-- the Wi-Fi list; passwords reach NetworkManager in a file only the user can
-  read, never on a command line, and are stored root-only
+- the network panel; Wi-Fi passwords reach NetworkManager in a file only the
+  user can read, never on a command line, and are stored root-only; DNS
+  changes apply to the connection in use without reconnecting
 - key binding help
 - copy and paste that works in terminals (Super+C/V/X)
 - window commands: pop out, tiled fullscreen, transparency, gaps, square
@@ -86,6 +88,9 @@ The `tatami` helper (`tool/`) provides:
 - a terminal in the active window's directory, editor and browser launch
 - volume, microphone, brightness and media keys with OSD
 - screenshots (freeze, region or window, copy, notify, Satty editing)
+- screen recordings of a region or monitor, with desktop audio and the
+  microphone, by gpu-screen-recorder, or wf-recorder where it cannot run
+  (no hardware OpenGL); text (OCR) and QR codes from a region
 - lock and wake, and logout, reboot and shutdown after closing windows
 
 Applications started from the menu, launcher or key bindings run in their own
@@ -102,10 +107,13 @@ Not ported from Omarchy:
 
 - Arch package installation and updates, Limine/snapper, Plymouth theming and
   the first-run script.
-- Theme, background and font switching, web apps, screen recording, OCR,
+- Theme, background and font switching, web apps, the webcam overlay,
   sharing, reminders, weather, dictation and AI agents.
-- The shell's other drop-down panels: Bluetooth and audio open bluetui and
-  wiremix. There is no notification history panel.
+- Setup's Plugins, Security, Defaults, Direct Boot and Reset entries, and the
+  Install, Remove, Update and Style menus.
+- The shell's own panels: the calendar is Waybar's, audio and Bluetooth are
+  the wiremix and bluetui terminal programs, and there is no notification
+  history panel or network statistics.
 
 ## Development
 

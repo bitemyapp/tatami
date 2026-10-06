@@ -90,6 +90,9 @@ pub enum Tui {
     Focus,
     /// Keep the window after the program exits (About).
     Hold,
+    /// A bar panel (audio, Bluetooth): opens, or comes forward when open,
+    /// and closes when it already has focus, like Omarchy 4's panels.
+    Panel,
 }
 
 /// A terminal application in a window with app-id org.tatami.<name>, as
@@ -103,7 +106,17 @@ pub fn tui(command: &[String], mode: Tui) {
         .and_then(|n| n.to_str())
         .unwrap_or("tui");
     let class = format!("org.tatami.{name}");
-    if mode == Tui::Focus
+    if mode == Tui::Panel
+        && let Ok(window) = hypr::json("activewindow")
+        && window["class"].as_str() == Some(class.as_str())
+        && let Some(address) = hypr::address(&window)
+    {
+        hypr::dispatch(&format!(
+            "hl.dsp.window.close({{ window = \"address:{address}\" }})"
+        ));
+        return;
+    }
+    if matches!(mode, Tui::Focus | Tui::Panel)
         && let Ok(clients) = hypr::json("clients")
         && let Some(address) = clients
             .as_array()

@@ -2,7 +2,8 @@
  * menu/Menu.qml and the Tokyo Night shell.toml; MIT, see ../../../LICENSE):
  * a dimmed screen, a 300px card with a 2px foreground border and 18px padding,
  * a "Go…" header, 50px rows with an 18px glyph in a 36px column and 16px
- * labels, and the selected row tinted with an accent label. */
+ * labels, a faint chevron on submenus, and the selected row tinted with an
+ * accent label and no outline. */
 @define-color background #1a1b26;
 @define-color foreground #a9b1d6;
 @define-color accent #7aa2f7;
@@ -76,7 +77,6 @@ child {
 
 child:selected .item-box {
   background: alpha(@foreground, 0.08);
-  box-shadow: inset 0 0 0 1px alpha(@foreground, 0.25);
 }
 
 child:selected .item-box * {
@@ -108,6 +108,20 @@ child:selected .item-box * {
 }
 
 child:selected .item-subtext {
+  color: @foreground;
+}
+
+/* Entries that open a submenu end in a faint chevron (menu-item.xml). */
+.item-chevron {
+  opacity: 0;
+  margin-right: 6px;
+}
+
+.submenu .item-chevron {
+  opacity: 0.36;
+}
+
+child:selected .item-chevron {
   color: @foreground;
 }
 

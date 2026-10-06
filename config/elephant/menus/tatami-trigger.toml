@@ -16,16 +16,19 @@ keywords = ["emoji", "emojis"]
 text = "Capture"
 icon = ""
 submenu = "tatami-capture"
+state = ["submenu"]
 keywords = ["capture", "screenshot"]
 
 [[entries]]
 text = "Toggle"
 icon = "󰔎"
 submenu = "tatami-toggle"
+state = ["submenu"]
 keywords = ["toggle", "toggles"]
 
 [[entries]]
 text = "Hardware"
 icon = ""
 submenu = "tatami-hardware"
+state = ["submenu"]
 keywords = ["hardware", "hw"]

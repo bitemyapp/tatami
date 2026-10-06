@@ -19,6 +19,10 @@ hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" 
 -- and would hand GTK styling to the Qt applications of other desktops.
 -------------------------------------------------------------------------------
 
+-- Omarchy's cursor is Adwaita, Arch's default theme; NixOS has no default, so
+-- Hyprland would draw its own. These stay in Hyprland's environment: they do
+-- not reach the systemd user manager, so other desktops keep their cursors.
+hl.env("XCURSOR_THEME", "Adwaita")
 hl.env("XCURSOR_SIZE", "24")
 hl.env("HYPRCURSOR_SIZE", "24")
 hl.env("GDK_BACKEND", "wayland,x11,*")
@@ -298,7 +302,7 @@ hl.window_rule({ match = { tag = "floating-window" }, float = true })
 hl.window_rule({ match = { tag = "floating-window" }, center = true })
 hl.window_rule({ match = { tag = "floating-window" }, size = { 875, 600 } })
 hl.window_rule({
-  match = { class = "(org.tatami.btop|org.tatami.terminal|org.tatami.bash|org.tatami.wiremix|org.tatami.bluetui|nm-connection-editor|org.codeberg.dnkl.foot|org.gnome.NautilusPreviewer|org.gnome.Evince|com.gabm.satty|Omarchy|About|TUI.float|imv|mpv)" },
+  match = { class = "(org.tatami.btop|org.tatami.terminal|org.tatami.bash|nm-connection-editor|org.codeberg.dnkl.foot|org.gnome.NautilusPreviewer|org.gnome.Evince|com.gabm.satty|Omarchy|About|TUI.float|imv|mpv)" },
   tag = "+floating-window",
 })
 hl.window_rule({ match = { class = "xdg-desktop-portal-gtk" }, tag = "+floating-window" })
@@ -308,6 +312,30 @@ hl.window_rule({
     title = "^(Open.*Files?|Open [F|f]older.*|Save.*Files?|Save.*As|Save|All Files|.*wants to [open|save].*|[C|c]hoose.*)",
   },
   tag = "+floating-window",
+})
+
+-- Audio and Bluetooth (wiremix, bluetui) open where Omarchy 4's audio and
+-- Bluetooth panels drop from the bar: 6px from the right edge, under it.
+-- window_w is still the terminal's own width when the move applies, so the
+-- move uses the fixed width.
+hl.window_rule({
+  match = { class = "(org.tatami.wiremix|org.tatami.bluetui)" },
+  float = true,
+  size = { 540, 360 },
+  move = { "(monitor_w-546)", "32" },
+})
+
+-- Authentication prompts (hyprpolkitagent) dim the screen around them and
+-- keep focus, as Omarchy's prompt does.
+hl.window_rule({
+  match = { title = "^Hyprland Polkit Agent$" },
+  float = true,
+  center = true,
+  pin = true,
+  stay_focused = true,
+  dim_around = true,
+  tag = "-default-opacity",
+  opacity = "1 1",
 })
 
 -- The About window needs more columns than the standard float provides.
@@ -565,16 +593,18 @@ hl.bind("SUPER + CTRL + Delete", hl.dsp.exec_cmd("tatami laptop-display"), { des
 
 -- Captures
 hl.bind("PRINT", hl.dsp.exec_cmd("tatami screenshot"), { description = "Screenshot" })
+hl.bind("ALT + PRINT", hl.dsp.exec_cmd("tatami screenrecord --menu"), { description = "Screenrecording" })
 hl.bind("SUPER + PRINT", hl.dsp.exec_cmd("tatami color-picker"), { description = "Color picker" })
+hl.bind("SUPER + CTRL + PRINT", hl.dsp.exec_cmd("tatami capture text"), { description = "Extract text (OCR) from screenshot" })
 
 -- Notifications on demand
 hl.bind("SUPER + CTRL + ALT + T", hl.dsp.exec_cmd("tatami notify time"), { description = "Show time" })
 hl.bind("SUPER + CTRL + ALT + B", hl.dsp.exec_cmd("tatami notify battery"), { description = "Show battery remaining" })
 
 -- Control panels: Omarchy's bar panels, as terminal applications and menus.
-hl.bind("SUPER + CTRL + A", hl.dsp.exec_cmd("tatami tui wiremix"), { description = "Audio" })
+hl.bind("SUPER + CTRL + A", hl.dsp.exec_cmd("tatami audio"), { description = "Audio" })
 hl.bind("SUPER + CTRL + B", hl.dsp.exec_cmd("tatami bluetooth"), { description = "Bluetooth" })
-hl.bind("SUPER + CTRL + D", hl.dsp.exec_cmd("tatami menu display"), { description = "Display" })
+hl.bind("SUPER + CTRL + D", hl.dsp.exec_cmd("tatami display"), { description = "Display" })
 hl.bind("SUPER + CTRL + W", hl.dsp.exec_cmd("tatami network"), { description = "Wi-Fi" })
 hl.bind("SUPER + CTRL + P", hl.dsp.exec_cmd("tatami power-profile"), { description = "Power" })
 hl.bind("SUPER + CTRL + T", hl.dsp.exec_cmd("tatami tui btop"), { description = "Activity" })

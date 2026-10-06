@@ -24,9 +24,10 @@ pub const CONFIG: &str = "/etc/xdg/tatami";
 const USAGE: &str = "usage: tatami <command>
   session                         start Hyprland with the Tatami configuration
   restore                         apply remembered toggles (session start)
-  menu [learn|trigger|capture|toggle|hardware|setup|display|system]
+  menu [learn|trigger|capture|screenrecord|toggle|hardware|setup|display|network|dns|system]
   apps | emoji | keybindings | about | power-profile | edit-config
-  network | bluetooth             Wi-Fi list, Bluetooth panel
+  network | bluetooth | audio | display    the bar's panels
+  dns <dhcp|cloudflare|google|custom>     DNS for the connection in use
   terminal [command...]           terminal in the focused terminal's directory
   tui <command...>                terminal application (focuses an open one)
   editor [file...] | files [--cwd] | launch <program> [args...]
@@ -36,10 +37,11 @@ const USAGE: &str = "usage: tatami <command>
   media <next|previous|play-pause>
   clipboard <copy|paste|cut>
   screenshot [smart|region|windows|fullscreen] | color-picker
+  screenrecord [--desktop-audio] [--microphone] [--stop|--menu] | capture <text|qr>
   window <pop|tiled-fullscreen|transparency|close-all>
   scale <up|down> | laptop-display | touchpad [on|off|toggle] | zoom <in|reset>
   toggle <idle|nightlight|notifications|bar|gaps|aspect|layout>
-  indicator <idle|notifications|nightlight>
+  indicator <idle|notifications|nightlight|screenrecording|tray>
   notify <time|battery> | bluetooth-toggle
   lock [--lock-only] | wake [seconds] | logout | reboot | shutdown | suspend | hibernate";
 
@@ -146,6 +148,17 @@ fn main() -> ExitCode {
             menu::show(first(""));
             menu::walker_args(first("")).is_some()
         }
+        Some("dns") => network::dns_command(first("")),
+        Some("display") => {
+            menu::display();
+            true
+        }
+        Some("audio") => {
+            menu::after_menu();
+            let wiremix = ["wiremix", "--tab", "output"].map(str::to_owned);
+            terminal::tui(&wiremix, terminal::Tui::Panel);
+            true
+        }
         Some("apps") => {
             menu::apps();
             true
@@ -242,6 +255,21 @@ fn main() -> ExitCode {
             capture::notify_edit(&rest[0]);
             true
         }
+        Some("screenrecord") => {
+            capture::screenrecord(rest);
+            true
+        }
+        Some("capture") => match first("") {
+            "text" => {
+                capture::text();
+                true
+            }
+            "qr" => {
+                capture::qr();
+                true
+            }
+            _ => false,
+        },
         Some("color-picker") => {
             capture::color_picker();
             true

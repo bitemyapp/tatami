@@ -1,6 +1,7 @@
-# Display › in the Tatami menu (see tatami.toml).
+# Setup › Monitors › in the Tatami menu (see tatami.toml), and the bar's
+# display panel.
 name = "tatami-display"
-name_pretty = "Display"
+name_pretty = "Monitors"
 parent = "tatami-setup"
 fixed_order = true
 hide_from_providerlist = true

@@ -34,11 +34,13 @@
   padding: 0;
 }
 
-#workspaces button.empty {
+/* Empty workspaces are dimmed, but the active one stays bright, as in Omarchy. */
+#workspaces button.empty:not(.active) {
   opacity: 0.5;
 }
 
 /* Indicators keep their slot beside the clock; inactive ones show on hover. */
+#custom-screenrecording,
 #custom-nightlight,
 #custom-silence,
 #custom-stay-awake {
@@ -47,16 +49,23 @@
   font-size: 10px;
 }
 
+#custom-screenrecording.inactive,
 #custom-nightlight.inactive,
 #custom-silence.inactive,
 #custom-stay-awake.inactive {
   opacity: 0;
 }
 
+#custom-screenrecording.inactive:hover,
 #custom-nightlight.inactive:hover,
 #custom-silence.inactive:hover,
 #custom-stay-awake.inactive:hover {
   opacity: 0.45;
+}
+
+/* Recording, as in Omarchy: the indicator in the error color. */
+#custom-screenrecording.active {
+  color: #f7768e;
 }
 
 #clock {
@@ -65,7 +74,7 @@
 
 /* As wide as the indicators, so the clock sits at the exact center. */
 #custom-center-balance {
-  min-width: 63px;
+  min-width: 84px;
   padding: 0;
 }
 

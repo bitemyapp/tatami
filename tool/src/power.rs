@@ -97,7 +97,7 @@ pub fn bluetooth() {
     }
     crate::menu::after_menu();
     util::run("rfkill", &["unblock", "bluetooth"]);
-    crate::terminal::tui(&["bluetui".to_owned()], crate::terminal::Tui::Focus);
+    crate::terminal::tui(&["bluetui".to_owned()], crate::terminal::Tui::Panel);
 }
 
 pub fn bluetooth_toggle() {

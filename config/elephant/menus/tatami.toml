@@ -11,22 +11,26 @@ action = "%VALUE%"
 text = "Apps"
 icon = "󰀻"
 value = "tatami apps"
+state = ["submenu"]
 keywords = ["app", "applications"]
 
 [[entries]]
 text = "Learn"
 icon = "󰧑"
 submenu = "tatami-learn"
+state = ["submenu"]
 
 [[entries]]
 text = "Trigger"
 icon = "󱓞"
 submenu = "tatami-trigger"
+state = ["submenu"]
 
 [[entries]]
 text = "Setup"
 icon = ""
 submenu = "tatami-setup"
+state = ["submenu"]
 keywords = ["settings"]
 
 [[entries]]
@@ -38,4 +42,5 @@ value = "tatami about"
 text = "System"
 icon = ""
 submenu = "tatami-system"
+state = ["submenu"]
 keywords = ["power-menu"]

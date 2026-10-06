@@ -5,7 +5,7 @@ let
   # must produce the same derivation wherever this directory lives.
   source = builtins.path {
     path = ./.;
-    name = "calamares-tatami-tool-src";
+    name = "tatami-src";
     filter =
       path: _:
       !(builtins.elem (baseNameOf path) [
@@ -15,7 +15,7 @@ let
   };
 in
 rustPlatform.buildRustPackage {
-  pname = "calamares-tatami-tool";
+  pname = "tatami";
   version = "0.1.0";
   src = source;
   cargoLock.lockFile = "${source}/Cargo.lock";

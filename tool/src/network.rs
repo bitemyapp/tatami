@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
-//! Wi-Fi in a Walker list: the bar's network icon, Super+Ctrl+W and
-//! Setup › Network. Omarchy 4 has a Wi-Fi panel there instead of a terminal
-//! tool; this is that panel over NetworkManager. Passwords are asked for in
-//! Walker and reach nmcli in a file only the user can read, never on a
-//! command line; the connections it creates keep their key root-only, like
-//! the installer's.
+//! The network panel in a Walker list, dropped from the bar like Omarchy 4's:
+//! the bar's network icon, Super+Ctrl+W and Setup › Wi-Fi. It shows the wired
+//! connection, the Wi-Fi networks, and the DNS provider of the connection in
+//! use (DHCP, Cloudflare, Google or custom servers, as in Omarchy), over
+//! NetworkManager. Passwords are asked for in Walker and reach nmcli in a
+//! file only the user can read, never on a command line; the connections it
+//! creates keep their key root-only, like the installer's.
 use crate::util;
 use std::{
     fs,
@@ -128,20 +129,20 @@ const WIFI_OFF: &str = "\u{f05aa}  Turn Wi-Fi off";
 const SETTINGS: &str = "\u{f0493}  Network settings…";
 
 enum Row {
+    /// The wired connection: shown, nothing to do.
+    Wired,
     Network(Network),
     Disconnect(String),
     Radio(bool),
+    Dns,
     Settings,
 }
 
-/// Networks first, so Return on opening never turns anything off; then
-/// disconnecting, the Wi-Fi switch and Network settings.
-fn rows(enabled: bool, networks: Vec<Network>) -> Vec<(String, Row)> {
+/// Wi-Fi rows: networks first, so Return on opening never turns anything off;
+/// then disconnecting and the Wi-Fi switch.
+fn wifi_rows(enabled: bool, networks: Vec<Network>) -> Vec<(String, Row)> {
     if !enabled {
-        return vec![
-            (WIFI_ON.to_owned(), Row::Radio(true)),
-            (SETTINGS.to_owned(), Row::Settings),
-        ];
+        return vec![(WIFI_ON.to_owned(), Row::Radio(true))];
     }
     let active = networks
         .iter()
@@ -162,8 +163,285 @@ fn rows(enabled: bool, networks: Vec<Network>) -> Vec<(String, Row)> {
         ));
     }
     rows.push((WIFI_OFF.to_owned(), Row::Radio(false)));
+    rows
+}
+
+/// The whole panel: wired connections (name and address), the Wi-Fi rows when
+/// there is a Wi-Fi device, the DNS provider when something is connected, and
+/// Network settings for VPN, enterprise and hidden networks.
+fn rows(
+    wired: &[(String, String)],
+    wifi: Option<(bool, Vec<Network>)>,
+    dns: Option<Dns>,
+) -> Vec<(String, Row)> {
+    let mut rows: Vec<(String, Row)> = wired
+        .iter()
+        .map(|(name, address)| {
+            let label = format!("\u{f0200}  {name}  {address}")
+                .trim_end()
+                .to_owned();
+            (label, Row::Wired)
+        })
+        .collect();
+    if let Some((enabled, networks)) = wifi {
+        rows.extend(wifi_rows(enabled, networks));
+    }
+    if let Some(dns) = dns {
+        rows.push((format!("\u{f01d6}  DNS: {}", dns.name()), Row::Dns));
+    }
     rows.push((SETTINGS.to_owned(), Row::Settings));
     rows
+}
+
+/// A connection in use: from `nmcli -t -f NAME,UUID,TYPE,DEVICE connection
+/// show --active`, wired or Wi-Fi only.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Active {
+    name: String,
+    uuid: String,
+    wired: bool,
+    device: String,
+}
+
+fn active_connections(list: &str) -> Vec<Active> {
+    list.lines()
+        .map(fields)
+        .filter(|fields| fields.len() >= 4)
+        .filter_map(|fields| {
+            let wired = matches!(fields[2].as_str(), "802-3-ethernet" | "ethernet");
+            let wifi = matches!(fields[2].as_str(), "802-11-wireless" | "wifi");
+            (wired || wifi).then(|| Active {
+                name: fields[0].clone(),
+                uuid: fields[1].clone(),
+                wired,
+                device: fields[3].clone(),
+            })
+        })
+        .collect()
+}
+
+/// The first IPv4 address of a device, without its prefix length.
+fn address(device: &str) -> String {
+    util::output("nmcli", &["-g", "IP4.ADDRESS", "device", "show", device])
+        .ok()
+        .and_then(|list| {
+            list.split(" | ")
+                .next()
+                .and_then(|address| address.trim().split('/').next())
+                .map(str::to_owned)
+        })
+        .unwrap_or_default()
+}
+
+/// DNS providers, as in Omarchy's Setup › Network › DNS.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Dns {
+    Dhcp,
+    Cloudflare,
+    Google,
+    Custom,
+}
+
+const CLOUDFLARE: [&str; 4] = [
+    "1.1.1.1",
+    "1.0.0.1",
+    "2606:4700:4700::1111",
+    "2606:4700:4700::1001",
+];
+const GOOGLE: [&str; 4] = [
+    "8.8.8.8",
+    "8.8.4.4",
+    "2001:4860:4860::8888",
+    "2001:4860:4860::8844",
+];
+
+impl Dns {
+    const ALL: [Dns; 4] = [Dns::Dhcp, Dns::Cloudflare, Dns::Google, Dns::Custom];
+
+    fn name(self) -> &'static str {
+        match self {
+            Dns::Dhcp => "DHCP",
+            Dns::Cloudflare => "Cloudflare",
+            Dns::Google => "Google",
+            Dns::Custom => "Custom",
+        }
+    }
+
+    fn servers(self) -> &'static [&'static str] {
+        match self {
+            Dns::Cloudflare => &CLOUDFLARE,
+            Dns::Google => &GOOGLE,
+            Dns::Dhcp | Dns::Custom => &[],
+        }
+    }
+
+    /// The provider a connection uses, from
+    /// `nmcli -g ipv4.ignore-auto-dns,ipv4.dns connection show UUID`.
+    fn of(settings: &str) -> Dns {
+        let mut lines = settings.lines();
+        let ignore_auto = lines.next().unwrap_or("").trim() == "yes";
+        let servers = lines.next().unwrap_or("");
+        if !ignore_auto && servers.trim().is_empty() {
+            Dns::Dhcp
+        } else if servers.contains("1.1.1.1") {
+            Dns::Cloudflare
+        } else if servers.contains("8.8.8.8") {
+            Dns::Google
+        } else {
+            Dns::Custom
+        }
+    }
+}
+
+/// Servers typed for Custom: addresses separated by spaces or commas, split
+/// into IPv4 and IPv6; nothing when any of them is not an address.
+fn custom_servers(text: &str) -> Option<(Vec<String>, Vec<String>)> {
+    let mut v4 = Vec::new();
+    let mut v6 = Vec::new();
+    for word in text.split(|c: char| c == ',' || c.is_whitespace()) {
+        match word.parse::<std::net::IpAddr>() {
+            Ok(std::net::IpAddr::V4(_)) => v4.push(word.to_owned()),
+            Ok(std::net::IpAddr::V6(_)) => v6.push(word.to_owned()),
+            Err(_) if word.is_empty() => {}
+            Err(_) => return None,
+        }
+    }
+    (!v4.is_empty() || !v6.is_empty()).then_some((v4, v6))
+}
+
+/// Point a connection at these servers, or back at DHCP's when there are
+/// none, and apply it without reconnecting.
+fn set_dns(active: &Active, v4: &[String], v6: &[String]) -> Result<(), String> {
+    let manual = if v4.is_empty() && v6.is_empty() {
+        "no"
+    } else {
+        "yes"
+    };
+    let (v4, v6) = (v4.join(","), v6.join(","));
+    nmcli(&[
+        "connection",
+        "modify",
+        &active.uuid,
+        "ipv4.dns",
+        &v4,
+        "ipv4.ignore-auto-dns",
+        manual,
+        "ipv6.dns",
+        &v6,
+        "ipv6.ignore-auto-dns",
+        manual,
+    ])?;
+    nmcli(&["device", "reapply", &active.device])
+}
+
+fn dns_current(active: &Active) -> Dns {
+    util::output(
+        "nmcli",
+        &[
+            "-g",
+            "ipv4.ignore-auto-dns,ipv4.dns",
+            "connection",
+            "show",
+            &active.uuid,
+        ],
+    )
+    .map(|settings| Dns::of(&settings))
+    .unwrap_or(Dns::Dhcp)
+}
+
+/// The network panel's DNS row: choose a provider in a panel.
+fn dns(active: &Active) {
+    crate::menu::after_menu();
+    let current = dns_current(active);
+    let labels: Vec<String> = Dns::ALL.iter().map(|dns| dns.name().to_owned()).collect();
+    let Some(index) = crate::menu::panel_index(
+        "DNS",
+        &labels,
+        Dns::ALL.iter().position(|dns| *dns == current),
+    ) else {
+        return;
+    };
+    set_provider(active, Dns::ALL[index]);
+}
+
+/// Setup › Network › DNS: `tatami dns dhcp|cloudflare|google|custom`, for the
+/// connection in use.
+pub fn dns_command(provider: &str) -> bool {
+    let Some(chosen) = Dns::ALL
+        .into_iter()
+        .find(|dns| dns.name().eq_ignore_ascii_case(provider))
+    else {
+        return false;
+    };
+    let active = util::output(
+        "nmcli",
+        &[
+            "-t",
+            "-f",
+            "NAME,UUID,TYPE,DEVICE",
+            "connection",
+            "show",
+            "--active",
+        ],
+    )
+    .map(|list| active_connections(&list))
+    .unwrap_or_default();
+    match active.first() {
+        Some(primary) => {
+            crate::menu::after_menu();
+            set_provider(primary, chosen);
+        }
+        None => util::notify(
+            "\u{f01d6}",
+            "Not connected",
+            "DNS applies to the connection in use",
+        ),
+    }
+    true
+}
+
+fn set_provider(active: &Active, chosen: Dns) {
+    let (v4, v6) = if chosen == Dns::Custom {
+        let Ok(text) = util::filter(
+            "walker",
+            &[
+                "--dmenu",
+                "--inputonly",
+                "--theme",
+                crate::menu::PANEL_THEME,
+                "-p",
+                "DNS servers…",
+            ],
+            b"",
+        ) else {
+            return;
+        };
+        if text.trim().is_empty() {
+            return;
+        }
+        let Some(servers) = custom_servers(&text) else {
+            util::notify("\u{f01d6}", "Not DNS server addresses", text.trim());
+            return;
+        };
+        servers
+    } else {
+        let (v4, v6): (Vec<&str>, Vec<&str>) = chosen
+            .servers()
+            .iter()
+            .partition(|server| !server.contains(':'));
+        (
+            v4.iter().map(|server| server.to_string()).collect(),
+            v6.iter().map(|server| server.to_string()).collect(),
+        )
+    };
+    match set_dns(active, &v4, &v6) {
+        Ok(()) => util::notify(
+            "\u{f01d6}",
+            &format!("DNS: {}", chosen.name()),
+            &format!("For {}", active.name),
+        ),
+        Err(error) => util::notify("\u{f01d6}", "Could not change DNS", reason(&error)),
+    }
 }
 
 fn wifi_device() -> Option<String> {
@@ -391,51 +669,82 @@ fn settings() {
 
 pub fn show() {
     crate::menu::after_menu();
-    let Some(device) = wifi_device() else {
-        // Wired-only machines: the bar's network icon opens the settings.
-        settings();
-        return;
-    };
-    let enabled =
-        util::output("nmcli", &["radio", "wifi"]).is_ok_and(|state| state.trim() == "enabled");
-    let networks = if enabled {
-        let list = util::output(
-            "nmcli",
-            &[
-                "-t",
-                "-f",
-                "IN-USE,SSID,SECURITY,SIGNAL",
-                "device",
-                "wifi",
-                "list",
-                "ifname",
-                &device,
-            ],
-        )
-        .unwrap_or_default();
-        networks(&list)
-    } else {
-        Vec::new()
-    };
-    let rows = rows(enabled, networks);
+    let active = util::output(
+        "nmcli",
+        &[
+            "-t",
+            "-f",
+            "NAME,UUID,TYPE,DEVICE",
+            "connection",
+            "show",
+            "--active",
+        ],
+    )
+    .map(|list| active_connections(&list))
+    .unwrap_or_default();
+    let wired: Vec<(String, String)> = active
+        .iter()
+        .filter(|connection| connection.wired)
+        .map(|connection| (connection.name.clone(), address(&connection.device)))
+        .collect();
+    let device = wifi_device();
+    let wifi = device.as_ref().map(|device| {
+        let enabled =
+            util::output("nmcli", &["radio", "wifi"]).is_ok_and(|state| state.trim() == "enabled");
+        let networks = if enabled {
+            let list = util::output(
+                "nmcli",
+                &[
+                    "-t",
+                    "-f",
+                    "IN-USE,SSID,SECURITY,SIGNAL",
+                    "device",
+                    "wifi",
+                    "list",
+                    "ifname",
+                    device,
+                ],
+            )
+            .unwrap_or_default();
+            networks(&list)
+        } else {
+            Vec::new()
+        };
+        (enabled, networks)
+    });
+    let primary = active.first();
+    let rows = rows(&wired, wifi, primary.map(dns_current));
     let labels: Vec<String> = rows.iter().map(|(label, _)| label.clone()).collect();
     let current = rows
         .iter()
         .position(|(_, row)| matches!(row, Row::Network(network) if network.active));
-    let Some(index) = crate::menu::pick_index("Wi-Fi", &labels, current, "420") else {
+    let prompt = if device.is_some() { "Wi-Fi" } else { "Network" };
+    let Some(index) = crate::menu::panel_index(prompt, &labels, current) else {
         return;
     };
     match &rows[index].1 {
+        Row::Wired => {}
         Row::Radio(on) => {
             let state = if *on { "on" } else { "off" };
             if nmcli(&["radio", "wifi", state]).is_ok() {
                 util::notify(ICON, &format!("Wi-Fi is {state}"), "");
             }
         }
-        Row::Network(network) => join(&device, network),
+        Row::Network(network) => {
+            if let Some(device) = &device {
+                join(device, network);
+            }
+        }
         Row::Disconnect(ssid) => {
-            if nmcli(&["device", "disconnect", &device]).is_ok() {
+            if let Some(device) = &device
+                && nmcli(&["device", "disconnect", device]).is_ok()
+            {
                 util::notify("\u{f05aa}", &format!("Disconnected from {ssid}"), "");
+            }
+        }
+        Row::Dns => {
+            if let Some(primary) = primary {
+                dns(primary);
             }
         }
         Row::Settings => settings(),
@@ -496,7 +805,7 @@ mod tests {
 
     #[test]
     fn rows_list_networks_first_then_actions() {
-        let on = rows(
+        let on = wifi_rows(
             true,
             vec![
                 network("Home", "WPA2", 100, true),
@@ -511,21 +820,71 @@ mod tests {
                 "\u{f092f}  Cafe",
                 "\u{f05aa}  Disconnect from Home",
                 WIFI_OFF,
-                SETTINGS
             ]
         );
-        let idle = rows(true, vec![network("Cafe", "", 10, false)]);
+        let idle = wifi_rows(true, vec![network("Cafe", "", 10, false)]);
         assert!(
             !idle
                 .iter()
                 .any(|(_, row)| matches!(row, Row::Disconnect(_)))
         );
-        let off = rows(false, vec![network("Cafe", "", 10, false)]);
+        let off = wifi_rows(false, vec![network("Cafe", "", 10, false)]);
         assert_eq!(
             off.iter()
                 .map(|(label, _)| label.as_str())
                 .collect::<Vec<_>>(),
+            [WIFI_ON]
+        );
+    }
+
+    #[test]
+    fn panel_shows_wired_then_wifi_then_dns_and_settings() {
+        let wired = [("Wired connection 1".to_owned(), "10.0.2.15".to_owned())];
+        let labels = |rows: Vec<(String, Row)>| -> Vec<String> {
+            rows.into_iter().map(|(label, _)| label).collect()
+        };
+        assert_eq!(
+            labels(rows(&wired, None, Some(Dns::Cloudflare))),
+            [
+                "\u{f0200}  Wired connection 1  10.0.2.15",
+                "\u{f01d6}  DNS: Cloudflare",
+                SETTINGS
+            ]
+        );
+        assert_eq!(
+            labels(rows(&[], Some((false, vec![])), None)),
             [WIFI_ON, SETTINGS]
         );
+    }
+
+    #[test]
+    fn active_connections_are_wired_or_wifi() {
+        let list = "Wired connection 1:aaaa:802-3-ethernet:enp0s2\nlo:bbbb:loopback:lo\nHome:cccc:802-11-wireless:wlan0\n";
+        let active = active_connections(list);
+        assert_eq!(active.len(), 2);
+        assert!(active[0].wired && active[0].device == "enp0s2");
+        assert!(!active[1].wired && active[1].uuid == "cccc");
+    }
+
+    #[test]
+    fn dns_provider_from_connection_settings() {
+        assert_eq!(Dns::of("no\n\n"), Dns::Dhcp);
+        assert_eq!(Dns::of("yes\n1.1.1.1,1.0.0.1\n"), Dns::Cloudflare);
+        assert_eq!(Dns::of("yes\n8.8.8.8,8.8.4.4\n"), Dns::Google);
+        assert_eq!(Dns::of("yes\n9.9.9.9\n"), Dns::Custom);
+        assert_eq!(Dns::of("no\n9.9.9.9\n"), Dns::Custom);
+    }
+
+    #[test]
+    fn custom_dns_servers_are_addresses() {
+        assert_eq!(
+            custom_servers("9.9.9.9, 2620:fe::fe 149.112.112.112"),
+            Some((
+                vec!["9.9.9.9".to_owned(), "149.112.112.112".to_owned()],
+                vec!["2620:fe::fe".to_owned()]
+            ))
+        );
+        assert_eq!(custom_servers("dns.quad9.net"), None);
+        assert_eq!(custom_servers("  "), None);
     }
 }

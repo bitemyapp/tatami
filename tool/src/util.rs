@@ -150,7 +150,18 @@ pub fn pids_named(names: &[&str]) -> Vec<i32> {
             std::fs::read_to_string(format!("/proc/{pid}/comm"))
                 .is_ok_and(|comm| names.contains(&comm.trim()))
         })
+        // An exited child not yet reaped still has its name: not running.
+        .filter(|pid| {
+            std::fs::read_to_string(format!("/proc/{pid}/stat")).is_ok_and(|stat| !is_zombie(&stat))
+        })
         .collect()
+}
+
+/// The state in /proc/PID/stat, after the parenthesized name (which may
+/// itself contain spaces and parentheses).
+fn is_zombie(stat: &str) -> bool {
+    stat.rsplit_once(") ")
+        .is_some_and(|(_, rest)| rest.starts_with('Z'))
 }
 
 pub fn terminate(pids: &[i32]) {
@@ -167,5 +178,16 @@ pub fn signal_waybar(offset: i32) {
         unsafe {
             libc::kill(pid, libc::SIGRTMIN() + offset);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn zombies_are_not_running() {
+        assert!(is_zombie("1479 (gpu-screen-reco) Z 1468 1468"));
+        assert!(!is_zombie("1468 (slurp) S 1 1468"));
+        assert!(!is_zombie("7 (a) Z) R 1 7"));
     }
 }

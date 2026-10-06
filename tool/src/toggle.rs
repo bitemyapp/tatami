@@ -142,13 +142,52 @@ pub fn indicator(which: &str) -> String {
             "Allow Idle Lock & Screensaver",
             "Stay Awake",
         ),
+        "screenrecording" => indicator_json(
+            "\u{f0ec2}",
+            crate::capture::recording(),
+            "Stop recording",
+            "Screen Recording",
+        ),
+        "tray" => tray_indicator(tray_items()),
         _ => serde_json::json!({ "text": "" }).to_string(),
     }
+}
+
+/// Applications with a tray icon, from the bar's StatusNotifierWatcher.
+fn tray_items() -> usize {
+    util::output(
+        "busctl",
+        &[
+            "--user",
+            "--json=short",
+            "get-property",
+            "org.kde.StatusNotifierWatcher",
+            "/StatusNotifierWatcher",
+            "org.kde.StatusNotifierWatcher",
+            "RegisteredStatusNotifierItems",
+        ],
+    )
+    .ok()
+    .and_then(|reply| serde_json::from_str::<serde_json::Value>(&reply).ok())
+    .and_then(|reply| reply["data"].as_array().map(Vec::len))
+    .unwrap_or(0)
+}
+
+/// The tray's opener: a chevron while there are tray icons, otherwise
+/// nothing, which Waybar hides.
+pub fn tray_indicator(items: usize) -> String {
+    let text = if items > 0 { "\u{f053}" } else { "" };
+    serde_json::json!({ "text": text }).to_string()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn tray_opener_only_with_tray_icons() {
+        assert_eq!(tray_indicator(0), r#"{"text":""}"#);
+        assert!(tray_indicator(2).contains('\u{f053}'));
+    }
     #[test]
     fn temperature_is_the_first_number() {
         assert_eq!(parse_temperature("6000\n"), Some(6000));
