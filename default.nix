@@ -219,17 +219,9 @@ in
             ];
             wants = [ "wireplumber.service" ];
           };
-      # Ready once it owns the notification service, which other desktops'
-      # notification daemons could otherwise be started for.
-      tatami-mako =
-        lib.recursiveUpdate
-          (unit "Tatami notifications" "${pkgs.mako}/bin/mako -c ${configDir}/mako/config")
-          {
-            serviceConfig = {
-              Type = "dbus";
-              BusName = "org.freedesktop.Notifications";
-            };
-          };
+      # A plain service: with Type=dbus and BusName, systemd refused to load it
+      # once another desktop's notification service had claimed the name.
+      tatami-mako = unit "Tatami notifications" "${pkgs.mako}/bin/mako -c ${configDir}/mako/config";
       # The power key opens the System menu, as in Omarchy, which has logind
       # ignore it; here only while this session runs, so the login screen and
       # the other desktops keep their own handling.
