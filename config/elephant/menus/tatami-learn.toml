@@ -14,7 +14,7 @@ value = "tatami keybindings"
 [[entries]]
 text = "Tatami"
 icon = ""
-value = "tatami browser https://github.com/bitemyapp/determinate-nixos-graphical/blob/stable/docs/hyprland.md"
+value = "tatami browser https://github.com/bitemyapp/tatami/blob/stable/README.md"
 
 [[entries]]
 text = "Hyprland"

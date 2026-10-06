@@ -1,5 +1,5 @@
 # Omarchy 4's btop theme (default/themed/btop.theme.tpl) rendered with Tokyo
-# Night (themes/tokyo-night/colors.toml; MIT, see ../../../LICENSE).
+# Night (themes/tokyo-night/colors.toml; MIT, see ../../../LICENSE.omarchy).
 
 # Main background, empty for terminal default, need to be empty if you want transparent background
 theme[main_bg]="#1a1b26"

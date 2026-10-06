@@ -1,5 +1,5 @@
 # Tatami launcher and menu, after Omarchy 4's launcher and menu
-# (MIT, see ../../LICENSE). The menu tree is in ../elephant/menus.
+# (MIT, see ../../LICENSE.omarchy). The menu tree is in ../elephant/menus.
 force_keyboard_focus = true
 selection_wrap = true
 theme = "tatami-default"

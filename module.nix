@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Tatami: the look, behavior and key bindings of Omarchy 4
-# "Quattro" (v4.0.4, https://github.com/basecamp/omarchy, MIT, see ./LICENSE)
-# for NixOS. Omarchy 4's Quickshell desktop shell is replaced by Waybar,
+# "Quattro" (v4.0.4, https://github.com/basecamp/omarchy, MIT, see ./LICENSE.omarchy)
+# for NixOS, as a NixOS module (this flake's nixosModules.default). Omarchy 4's Quickshell desktop shell is replaced by Waybar,
 # Walker/Elephant, Mako, SwayOSD and hyprlock styled after it, and its Bash
 # commands by the Rust `tatami` helper. The configuration lives in
 # /etc/xdg/tatami and is used only by this session; its components are user
@@ -13,10 +13,10 @@
   ...
 }:
 let
-  cfg = config.calamares.tatami;
+  cfg = config.programs.tatami;
   configDir = "/etc/xdg/tatami";
   tool = pkgs.callPackage ./tool/package.nix { };
-  # Only the providers the launcher and menu use (../config/walker): not
+  # Only the providers the launcher and menu use (config/walker): not
   # Arch package search, password managers or other compositors' windows.
   elephant = pkgs.elephant.override {
     enabledProviders = [
@@ -183,9 +183,14 @@ let
   };
 in
 {
-  options.calamares.tatami.enable = lib.mkEnableOption "Tatami session";
+  options.programs.tatami.enable = lib.mkEnableOption "the Tatami desktop session";
   config = lib.mkIf cfg.enable {
-    # programs.hyprland and uwsm are enabled by ../hyprland.nix.
+    # uwsm starts graphical-session.target and the session's own target,
+    # which Hyprland alone never does.
+    programs.hyprland = {
+      enable = true;
+      withUWSM = true;
+    };
     services.displayManager.sessionPackages = [ session ];
     environment.etc =
       lib.listToAttrs (map etcFile files)
