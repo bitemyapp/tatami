@@ -155,6 +155,8 @@ hl.config({
     initial_workspace_tracking = 0,
     allow_session_lock_restore = true,
     background_color = "rgb(1a1b26)",
+    -- uwsm sets XDG_CURRENT_DESKTOP=Hyprland:Tatami on purpose.
+    disable_xdg_env_checks = true,
   },
 
   cursor = {
