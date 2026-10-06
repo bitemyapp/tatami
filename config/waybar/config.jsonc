@@ -1,5 +1,5 @@
 // Tatami top bar after Omarchy 4's bar (shell/plugins/bar and
-// config/omarchy/shell.json; MIT, see ../../LICENSE.omarchy): the menu button and
+// config/omarchy/shell.json; MIT, see ../LICENSE): the menu button and
 // workspaces on the left; the indicators, a centered clock and its balance in
 // the middle; tray, Bluetooth, network, audio, display and power on the right.
 {

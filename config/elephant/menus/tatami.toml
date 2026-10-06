@@ -1,5 +1,5 @@
 # The Tatami menu, after Omarchy 4's default/omarchy/omarchy-menu.jsonc
-# (MIT, see ../../../LICENSE.omarchy) without its Arch package, update and theme
+# (MIT, see ../../LICENSE) without its Arch package, update and theme
 # entries. Entries run the `tatami` helper; Escape returns to the parent.
 name = "tatami"
 name_pretty = "Tatami"

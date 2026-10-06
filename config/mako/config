@@ -1,5 +1,5 @@
 # Tatami notifications after Omarchy 4's notification cards
-# (shell/plugins/notifications; MIT, see ../../LICENSE.omarchy) in Tokyo Night:
+# (shell/plugins/notifications; MIT, see ../LICENSE) in Tokyo Night:
 # 380px cards with a 2px accent border, 5px from the bar and screen edge and
 # 8px apart, a 40px icon, bold 14px Liberation Sans summaries over slightly
 # dimmer bodies, and 5 s (low), 8 s (normal) or sticky (critical) lifetimes.

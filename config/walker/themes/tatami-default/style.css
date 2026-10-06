@@ -1,5 +1,5 @@
 /* Tatami menu and launcher after Omarchy 4's menu card (shell/plugins/
- * menu/Menu.qml and the Tokyo Night shell.toml; MIT, see ../../../../LICENSE.omarchy):
+ * menu/Menu.qml and the Tokyo Night shell.toml; MIT, see ../../../LICENSE):
  * a dimmed screen, a 300px card with a 2px foreground border and 18px padding,
  * a "Go…" header, 50px rows with an 18px glyph in a 36px column and 16px
  * labels, and the selected row tinted with an accent label. */
