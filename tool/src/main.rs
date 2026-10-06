@@ -9,6 +9,7 @@ mod hypr;
 mod info;
 mod media;
 mod menu;
+mod network;
 mod power;
 mod terminal;
 mod toggle;
@@ -25,6 +26,7 @@ const USAGE: &str = "usage: tatami <command>
   restore                         apply remembered toggles (session start)
   menu [learn|trigger|capture|toggle|hardware|setup|display|system]
   apps | emoji | keybindings | about | power-profile | edit-config
+  network | bluetooth             Wi-Fi list, Bluetooth panel
   terminal [command...]           terminal in the focused terminal's directory
   tui <command...>                terminal application (focuses an open one)
   editor [file...] | files [--cwd] | launch <program> [args...]
@@ -53,8 +55,8 @@ pub fn config_dirs(existing: Option<&str>) -> String {
     dirs.join(":")
 }
 
-/// Start the compositor. A user's own ~/.config/tatami/hyprland.lua
-/// replaces the shipped configuration entirely.
+/// Start the compositor with the user's ~/.config/tatami/hyprland.lua if
+/// they have one (Setup › Hyprland makes it), otherwise the shipped one.
 fn session() -> ExitCode {
     let user = format!("{}/.config/tatami/hyprland.lua", util::home());
     let config = if Path::new(&user).is_file() {
@@ -77,18 +79,33 @@ fn session() -> ExitCode {
     ExitCode::FAILURE
 }
 
-/// Setup › Hyprland: edit the user's own copy of the configuration, made
-/// from the shipped one the first time. The session uses it from the next
-/// login on.
+/// The user's configuration as Setup › Hyprland first writes it: Tatami's
+/// defaults, then their own settings, so updates to the defaults still
+/// reach them (Omarchy's user hyprland.lua works the same way).
+pub fn user_config() -> String {
+    format!(
+        "-- Your Tatami Hyprland configuration, used from the next login.
+-- Tatami's defaults load first, so their updates keep reaching you;
+-- settings below override them. See https://wiki.hypr.land/Configuring/Start/
+dofile(\"{CONFIG}/hypr/hyprland.lua\")
+
+-- For example, wider gaps:
+-- hl.config({{ general = {{ gaps_out = 20 }} }})
+"
+    )
+}
+
+/// Setup › Hyprland: edit the user's own configuration, made the first
+/// time. The session uses it from the next login on.
 fn edit_config() {
     use std::os::unix::fs::PermissionsExt;
     let dir = format!("{}/.config/tatami", util::home());
     let user = format!("{dir}/hyprland.lua");
     if !Path::new(&user).exists() {
-        let copied = std::fs::create_dir_all(&dir).is_ok()
-            && std::fs::copy(format!("{CONFIG}/hypr/hyprland.lua"), &user).is_ok()
+        let written = std::fs::create_dir_all(&dir).is_ok()
+            && std::fs::write(&user, user_config()).is_ok()
             && std::fs::set_permissions(&user, std::fs::Permissions::from_mode(0o644)).is_ok();
-        if !copied {
+        if !written {
             util::notify(
                 "\u{f359}",
                 "Cannot create ~/.config/tatami/hyprland.lua",
@@ -99,7 +116,7 @@ fn edit_config() {
         util::notify(
             "\u{f359}",
             "Your Hyprland configuration",
-            "~/.config/tatami/hyprland.lua replaces the default from the next login",
+            "~/.config/tatami/hyprland.lua adds to Tatami's defaults from the next login",
         );
     }
     terminal::editor(&[user]);
@@ -147,6 +164,14 @@ fn main() -> ExitCode {
         }
         Some("power-profile") => {
             menu::power_profile();
+            true
+        }
+        Some("network") => {
+            network::show();
+            true
+        }
+        Some("bluetooth") => {
+            power::bluetooth();
             true
         }
         Some("about") => {
@@ -360,5 +385,14 @@ mod tests {
             )),
             "/etc/xdg/tatami:/etc/xdg:/run/current-system/sw/etc/xdg"
         );
+    }
+    #[test]
+    fn user_configuration_loads_the_defaults_first() {
+        let config = user_config();
+        let code: Vec<&str> = config
+            .lines()
+            .filter(|line| !line.is_empty() && !line.starts_with("--"))
+            .collect();
+        assert_eq!(code, ["dofile(\"/etc/xdg/tatami/hypr/hyprland.lua\")"]);
     }
 }

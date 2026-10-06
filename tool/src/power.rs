@@ -82,6 +82,24 @@ pub fn bluetooth_powered(show: &str) -> Option<bool> {
 }
 
 /// Right click on the bar's Bluetooth icon: switch the radio on or off.
+/// Super+Ctrl+B, the bar's Bluetooth icon and Setup › Bluetooth: bluetui,
+/// which pairs devices that need a passkey, after unblocking the radio.
+/// Without an adapter it says so instead of opening an empty panel.
+pub fn bluetooth() {
+    let adapter = std::fs::read_dir("/sys/class/bluetooth")
+        .into_iter()
+        .flatten()
+        .flatten()
+        .any(|entry| entry.file_name().to_string_lossy().starts_with("hci"));
+    if !adapter {
+        util::notify("\u{f00b2}", "No Bluetooth adapter", "");
+        return;
+    }
+    crate::menu::after_menu();
+    util::run("rfkill", &["unblock", "bluetooth"]);
+    crate::terminal::tui(&["bluetui".to_owned()], crate::terminal::Tui::Focus);
+}
+
 pub fn bluetooth_toggle() {
     if let Some(powered) = util::output("bluetoothctl", &["show"])
         .ok()

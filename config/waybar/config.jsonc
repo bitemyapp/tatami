@@ -124,7 +124,7 @@
     "format-connected": "󰂱",
     "format-no-controller": "",
     "tooltip-format": "Devices connected: {num_connections}",
-    "on-click": "tatami tui bluetui",
+    "on-click": "tatami bluetooth",
     "on-click-right": "tatami bluetooth-toggle"
   },
   "network": {
@@ -143,7 +143,7 @@
     "tooltip-format-ethernet": "Connected",
     "tooltip-format-disconnected": "Disconnected",
     "interval": 3,
-    "on-click": "tatami tui nmtui"
+    "on-click": "tatami network"
   },
   "pulseaudio": {
     "format": "{icon}",
@@ -159,7 +159,7 @@
     },
     "tooltip-format": "Playing at {volume}%",
     "on-click": "tatami tui wiremix",
-    "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+    "on-click-right": "tatami volume mute-toggle",
     "on-scroll-up": "tatami volume raise",
     "on-scroll-down": "tatami volume lower"
   },

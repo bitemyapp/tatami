@@ -19,6 +19,24 @@ fn data_dirs() -> Vec<PathBuf> {
     dirs
 }
 
+/// Whether a desktop entry's [Desktop Entry] lists the WebBrowser category.
+/// Other programs claim web links too: the ChatGPT app does.
+pub fn is_browser(entry: &str) -> bool {
+    let mut in_main = false;
+    entry.lines().map(str::trim).any(|line| {
+        if line.starts_with('[') {
+            in_main = line == "[Desktop Entry]";
+            return false;
+        }
+        in_main
+            && line.strip_prefix("Categories=").is_some_and(|categories| {
+                categories
+                    .split(';')
+                    .any(|category| category == "WebBrowser")
+            })
+    })
+}
+
 /// The program from a desktop entry's first `Exec=` line in [Desktop Entry].
 pub fn exec_program(entry: &str) -> Option<String> {
     let mut in_main = false;
@@ -56,6 +74,7 @@ fn default_program() -> Option<String> {
     data_dirs()
         .into_iter()
         .find_map(|dir| fs::read_to_string(dir.join("applications").join(&id)).ok())
+        .filter(|entry| is_browser(entry))
         .and_then(|entry| exec_program(&entry))
 }
 
@@ -95,6 +114,18 @@ mod tests {
             Some("/nix/store/a-chromium/bin/chromium")
         );
         assert_eq!(exec_program("[Desktop Entry]\nName=x\n"), None);
+    }
+    #[test]
+    fn only_web_browsers_count_as_the_default_browser() {
+        assert!(is_browser(
+            "[Desktop Entry]\nName=Firefox\nCategories=Network;WebBrowser;\n"
+        ));
+        assert!(!is_browser(
+            "[Desktop Entry]\nName=ChatGPT\nCategories=Office;Utility;\nMimeType=x-scheme-handler/https;\n"
+        ));
+        assert!(!is_browser(
+            "[Desktop Entry]\nName=App\n[Desktop Action web]\nCategories=WebBrowser;\n"
+        ));
     }
     #[test]
     fn private_flags_by_family() {

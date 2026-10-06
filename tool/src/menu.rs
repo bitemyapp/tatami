@@ -54,7 +54,7 @@ fn walker_open() -> bool {
 
 /// A menu entry that opens another Walker view runs while the menu is
 /// still closing; wait for it, or Walker would take the request as "close".
-fn after_menu() {
+pub fn after_menu() {
     for _ in 0..40 {
         if !walker_open() {
             return;
@@ -119,6 +119,39 @@ fn pick(prompt: &str, lines: &[String], current: Option<usize>, width: &str) -> 
     let chosen = util::filter("walker", &args, input.as_bytes()).ok()?;
     let chosen = chosen.trim();
     lines.iter().find(|line| line.as_str() == chosen).cloned()
+}
+
+/// Like `pick`, by position, for lists whose labels may repeat.
+pub fn pick_index(
+    prompt: &str,
+    lines: &[String],
+    current: Option<usize>,
+    width: &str,
+) -> Option<usize> {
+    let input = lines.join("\n");
+    let placeholder = format!("{prompt}\u{2026}");
+    let selected = current.map(|index| (index + 1).to_string());
+    let mut args = vec![
+        "--dmenu",
+        "--index",
+        "--width",
+        width,
+        "--minheight",
+        "1",
+        "--maxheight",
+        "630",
+        "-p",
+        placeholder.as_str(),
+    ];
+    if let Some(selected) = &selected {
+        args.extend(["-c", selected.as_str()]);
+    }
+    let chosen = util::filter("walker", &args, input.as_bytes()).ok()?;
+    chosen
+        .trim()
+        .parse()
+        .ok()
+        .filter(|index| *index < lines.len())
 }
 
 /// Setup › Power Profile and the bar's battery: the profiles this machine

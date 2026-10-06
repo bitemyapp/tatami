@@ -12,15 +12,15 @@ icon = "󰓃"
 value = "tatami tui wiremix"
 
 [[entries]]
-text = "Network"
-icon = "󰛳"
-value = "tatami tui nmtui"
-keywords = ["wifi", "network"]
+text = "Wi-Fi"
+icon = "󰖩"
+value = "tatami network"
+keywords = ["wifi", "network", "wireless"]
 
 [[entries]]
 text = "Bluetooth"
 icon = "󰂯"
-value = "tatami tui bluetui"
+value = "tatami bluetooth"
 
 [[entries]]
 text = "Power Profile"

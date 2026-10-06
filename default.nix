@@ -16,6 +16,35 @@ let
   cfg = config.calamares.tatami;
   configDir = "/etc/xdg/tatami";
   tool = pkgs.callPackage ./tool/package.nix { };
+  # Only the providers the launcher and menu use (../config/walker): not
+  # Arch package search, password managers or other compositors' windows.
+  elephant = pkgs.elephant.override {
+    enabledProviders = [
+      "desktopapplications"
+      "menus"
+      "providerlist"
+      "calc"
+      "clipboard"
+      "files"
+      "symbols"
+      "websearch"
+    ];
+  };
+  # Other desktops' tray applets, kept out of this session: Tatami has its own
+  # Wi-Fi list, and the bar shows no printer applet.
+  hiddenInTatami =
+    name: package: notShowIn:
+    lib.nameValuePair "xdg/autostart/${name}.desktop" {
+      source = pkgs.substitute {
+        name = "${name}.desktop";
+        src = "${package}/etc/xdg/autostart/${name}.desktop";
+        substitutions = [
+          "--replace-fail"
+          "NotShowIn=${notShowIn}"
+          "NotShowIn=${notShowIn}Tatami;"
+        ];
+      };
+    };
   # Desktop names Hyprland:Tatami: Hyprland first, so portals and the
   # terminal choice follow Hyprland's; Tatami makes uwsm load env-tatami.
   session = pkgs.writeTextFile {
@@ -158,15 +187,23 @@ in
   config = lib.mkIf cfg.enable {
     # programs.hyprland and uwsm are enabled by ../hyprland.nix.
     services.displayManager.sessionPackages = [ session ];
-    environment.etc = lib.listToAttrs (map etcFile files) // {
-      "xdg/tatami/hypr/hyprland.lua".source = hyprland;
-      "xdg/tatami/elephant/menus/tatami-system.toml".source = systemMenu;
-      "xdg/tatami/background".source = wallpaper;
-      # Selects the session's dconf profile (see programs.dconf below).
-      "xdg/uwsm/env-tatami".text = ''
-        export DCONF_PROFILE=tatami
-      '';
-    };
+    environment.etc =
+      lib.listToAttrs (map etcFile files)
+      // {
+        "xdg/tatami/hypr/hyprland.lua".source = hyprland;
+        "xdg/tatami/elephant/menus/tatami-system.toml".source = systemMenu;
+        "xdg/tatami/background".source = wallpaper;
+        # Selects the session's dconf profile (see programs.dconf below).
+        "xdg/uwsm/env-tatami".text = ''
+          export DCONF_PROFILE=tatami
+        '';
+      }
+      // lib.listToAttrs (
+        [ (hiddenInTatami "nm-applet" pkgs.networkmanagerapplet "KDE;GNOME;COSMIC;") ]
+        ++ lib.optional config.programs.system-config-printer.enable (
+          hiddenInTatami "print-applet" pkgs.system-config-printer "KDE;GNOME;Cinnamon;"
+        )
+      );
     systemd.user.services = {
       tatami-waybar =
         lib.recursiveUpdate
@@ -182,12 +219,36 @@ in
             ];
             wants = [ "wireplumber.service" ];
           };
-      tatami-mako = unit "Tatami notifications" "${pkgs.mako}/bin/mako -c ${configDir}/mako/config";
+      # Ready once it owns the notification service, which other desktops'
+      # notification daemons could otherwise be started for.
+      tatami-mako =
+        lib.recursiveUpdate
+          (unit "Tatami notifications" "${pkgs.mako}/bin/mako -c ${configDir}/mako/config")
+          {
+            serviceConfig = {
+              Type = "dbus";
+              BusName = "org.freedesktop.Notifications";
+            };
+          };
+      # The power key opens the System menu, as in Omarchy, which has logind
+      # ignore it; here only while this session runs, so the login screen and
+      # the other desktops keep their own handling.
+      tatami-power-key = unit "Tatami power key" (
+        lib.escapeShellArgs [
+          "${config.systemd.package}/bin/systemd-inhibit"
+          "--what=handle-power-key"
+          "--who=Tatami"
+          "--why=The power key opens the System menu"
+          "--mode=block"
+          "${pkgs.coreutils}/bin/sleep"
+          "infinity"
+        ]
+      );
       tatami-swaybg = unit "Tatami background" "${lib.getExe pkgs.swaybg} -i ${configDir}/background -m fill";
       tatami-swayosd = unit "Tatami on-screen display" "${pkgs.swayosd}/bin/swayosd-server";
       tatami-hypridle = unit "Tatami idle locking" "${lib.getExe pkgs.hypridle} -c ${configDir}/hypr/hypridle.conf";
       tatami-polkit = unit "Tatami authentication agent" "${pkgs.hyprpolkitagent}/libexec/hyprpolkitagent";
-      tatami-elephant = unit "Tatami launcher backend" "${lib.getExe pkgs.elephant}";
+      tatami-elephant = unit "Tatami launcher backend" "${lib.getExe elephant}";
       tatami-walker =
         lib.recursiveUpdate (unit "Tatami launcher" "${lib.getExe pkgs.walker} --gapplication-service")
           {
@@ -254,7 +315,7 @@ in
       pkgs.foot
       pkgs.walker
       # walker finds its backend through PATH.
-      pkgs.elephant
+      elephant
       pkgs.mako
       pkgs.swayosd
       pkgs.hyprlock
@@ -270,6 +331,9 @@ in
       pkgs.wireplumber
       pkgs.wiremix
       pkgs.bluetui
+      # Network settings… in the Wi-Fi list: VPN, enterprise and hidden
+      # networks, static addresses.
+      pkgs.networkmanagerapplet
       pkgs.btop
       pkgs.fastfetch
       pkgs.nautilus

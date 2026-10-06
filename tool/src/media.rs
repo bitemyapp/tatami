@@ -86,6 +86,7 @@ pub fn brightness(step: &str) {
         .filter_map(|entry| entry.file_name().into_string().ok())
         .collect();
     let Some(device) = backlight_device(names) else {
+        util::notify("\u{f0379}", "This display has no adjustable brightness", "");
         return;
     };
     let current = util::output("brightnessctl", &["-d", &device, "-m"])

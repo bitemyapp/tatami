@@ -27,8 +27,8 @@ hl.env("MOZ_ENABLE_WAYLAND", "1")
 hl.env("ELECTRON_OZONE_PLATFORM_HINT", "wayland")
 hl.env("OZONE_PLATFORM", "wayland")
 hl.env("XDG_SESSION_TYPE", "wayland")
-hl.env("XDG_CURRENT_DESKTOP", "Hyprland")
-hl.env("XDG_SESSION_DESKTOP", "Hyprland")
+-- XDG_CURRENT_DESKTOP stays Hyprland:Tatami, as the session sets it, so
+-- other desktops' autostart entries can be kept out of Tatami.
 hl.env("TERMINAL", "xdg-terminal-exec")
 
 hl.config({
@@ -296,7 +296,7 @@ hl.window_rule({ match = { tag = "floating-window" }, float = true })
 hl.window_rule({ match = { tag = "floating-window" }, center = true })
 hl.window_rule({ match = { tag = "floating-window" }, size = { 875, 600 } })
 hl.window_rule({
-  match = { class = "(org.tatami.btop|org.tatami.terminal|org.tatami.bash|org.tatami.wiremix|org.tatami.bluetui|org.tatami.nmtui|org.codeberg.dnkl.foot|org.gnome.NautilusPreviewer|org.gnome.Evince|com.gabm.satty|Omarchy|About|TUI.float|imv|mpv)" },
+  match = { class = "(org.tatami.btop|org.tatami.terminal|org.tatami.bash|org.tatami.wiremix|org.tatami.bluetui|nm-connection-editor|org.codeberg.dnkl.foot|org.gnome.NautilusPreviewer|org.gnome.Evince|com.gabm.satty|Omarchy|About|TUI.float|imv|mpv)" },
   tag = "+floating-window",
 })
 hl.window_rule({ match = { class = "xdg-desktop-portal-gtk" }, tag = "+floating-window" })
@@ -571,9 +571,9 @@ hl.bind("SUPER + CTRL + ALT + B", hl.dsp.exec_cmd("tatami notify battery"), { de
 
 -- Control panels: Omarchy's bar panels, as terminal applications and menus.
 hl.bind("SUPER + CTRL + A", hl.dsp.exec_cmd("tatami tui wiremix"), { description = "Audio" })
-hl.bind("SUPER + CTRL + B", hl.dsp.exec_cmd("tatami tui bluetui"), { description = "Bluetooth" })
+hl.bind("SUPER + CTRL + B", hl.dsp.exec_cmd("tatami bluetooth"), { description = "Bluetooth" })
 hl.bind("SUPER + CTRL + D", hl.dsp.exec_cmd("tatami menu display"), { description = "Display" })
-hl.bind("SUPER + CTRL + W", hl.dsp.exec_cmd("tatami tui nmtui"), { description = "Network" })
+hl.bind("SUPER + CTRL + W", hl.dsp.exec_cmd("tatami network"), { description = "Wi-Fi" })
 hl.bind("SUPER + CTRL + P", hl.dsp.exec_cmd("tatami power-profile"), { description = "Power" })
 hl.bind("SUPER + CTRL + T", hl.dsp.exec_cmd("tatami tui btop"), { description = "Activity" })
 
