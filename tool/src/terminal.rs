@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Terminals and terminal applications in foot, Omarchy 4's terminal. foot
-//! finds the Omarchy-style configuration through XDG_CONFIG_DIRS, which the
-//! session prepends with /etc/xdg/omarchy; a user's own ~/.config/foot
+//! finds the Tatami configuration through XDG_CONFIG_DIRS, which the
+//! session prepends with /etc/xdg/tatami; a user's own ~/.config/foot
 //! still takes precedence.
 use crate::{CONFIG, hypr, util};
 use std::{fs, path::Path};
@@ -92,7 +92,7 @@ pub enum Tui {
     Hold,
 }
 
-/// A terminal application in a window with app-id org.omarchy.<name>, as
+/// A terminal application in a window with app-id org.tatami.<name>, as
 /// omarchy-launch-tui does; the window rules float the panel-like ones.
 pub fn tui(command: &[String], mode: Tui) {
     let Some(program) = command.first() else {
@@ -102,7 +102,7 @@ pub fn tui(command: &[String], mode: Tui) {
         .file_name()
         .and_then(|n| n.to_str())
         .unwrap_or("tui");
-    let class = format!("org.omarchy.{name}");
+    let class = format!("org.tatami.{name}");
     if mode == Tui::Focus
         && let Ok(clients) = hypr::json("clients")
         && let Some(address) = clients
@@ -125,7 +125,7 @@ pub fn tui(command: &[String], mode: Tui) {
     args.push("--");
     args.extend(command.iter().map(String::as_str));
     // btop reads only ~/.config/btop; until the user has their own
-    // configuration, use the Omarchy-style one and its Tokyo Night theme.
+    // configuration, use the Tatami one and its Tokyo Night theme.
     let btop = format!("{CONFIG}/btop/btop.conf");
     let themes = format!("{CONFIG}/btop/themes");
     let own = format!("{}/.config/btop/btop.conf", util::home());

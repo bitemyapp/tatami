@@ -1,10 +1,10 @@
--- Omarchy-style Hyprland for NixOS, following Omarchy 4 "Quattro" (v4.0.4,
+-- Tatami for NixOS, following Omarchy 4 "Quattro" (v4.0.4,
 -- https://github.com/basecamp/omarchy, MIT; see ../../LICENSE): its
 -- default/hypr and config/hypr Lua modules, the Tokyo Night theme, and its
 -- key bindings. Configuration calls only: dynamic behavior lives in the
--- `omarchy` helper, and session components are systemd user units started
+-- `tatami` helper, and session components are systemd user units started
 -- with this session. To customize, copy this file (including the keyboard
--- section NixOS appends) to ~/.config/omarchy/hyprland.lua.
+-- section NixOS appends) to ~/.config/tatami/hyprland.lua.
 
 -------------------------------------------------------------------------------
 -- Monitors (config/hypr/monitors.lua)
@@ -291,12 +291,12 @@ hl.window_rule({ match = { class = "steam.*" }, tag = "-default-opacity", opacit
 hl.window_rule({ match = { class = "steam", title = "Friends List" }, size = { 460, 800 } })
 
 -- Floating windows (apps/system.lua), including the panels the helper opens
--- as terminal applications (org.omarchy.<program>) and the screenshot editor.
+-- as terminal applications (org.tatami.<program>) and the screenshot editor.
 hl.window_rule({ match = { tag = "floating-window" }, float = true })
 hl.window_rule({ match = { tag = "floating-window" }, center = true })
 hl.window_rule({ match = { tag = "floating-window" }, size = { 875, 600 } })
 hl.window_rule({
-  match = { class = "(org.omarchy.btop|org.omarchy.terminal|org.omarchy.bash|org.omarchy.wiremix|org.omarchy.bluetui|org.omarchy.nmtui|org.codeberg.dnkl.foot|org.gnome.NautilusPreviewer|org.gnome.Evince|com.gabm.satty|Omarchy|About|TUI.float|imv|mpv)" },
+  match = { class = "(org.tatami.btop|org.tatami.terminal|org.tatami.bash|org.tatami.wiremix|org.tatami.bluetui|org.tatami.nmtui|org.codeberg.dnkl.foot|org.gnome.NautilusPreviewer|org.gnome.Evince|com.gabm.satty|Omarchy|About|TUI.float|imv|mpv)" },
   tag = "+floating-window",
 })
 hl.window_rule({ match = { class = "xdg-desktop-portal-gtk" }, tag = "+floating-window" })
@@ -309,9 +309,9 @@ hl.window_rule({
 })
 
 -- The About window needs more columns than the standard float provides.
-hl.window_rule({ match = { class = "org.omarchy.fastfetch" }, float = true })
-hl.window_rule({ match = { class = "org.omarchy.fastfetch" }, center = true })
-hl.window_rule({ match = { class = "org.omarchy.fastfetch" }, size = { 920, 480 } })
+hl.window_rule({ match = { class = "org.tatami.fastfetch" }, float = true })
+hl.window_rule({ match = { class = "org.tatami.fastfetch" }, center = true })
+hl.window_rule({ match = { class = "org.tatami.fastfetch" }, size = { 920, 480 } })
 
 -- Calculator (omacalc in Omarchy).
 hl.window_rule({ match = { class = "org.gnome.Calculator" }, float = true })
@@ -337,7 +337,7 @@ hl.window_rule({ match = { class = "org.telegram.desktop" }, focus_on_activate =
 
 -- Terminals, including the helper's terminal applications.
 hl.window_rule({
-  match = { class = "(Alacritty|kitty|com.mitchellh.ghostty|foot|org\\.codeberg\\.dnkl\\.foot|wezterm|org\\.omarchy\\..*|TUI\\..*)" },
+  match = { class = "(Alacritty|kitty|com.mitchellh.ghostty|foot|org\\.codeberg\\.dnkl\\.foot|wezterm|org\\.tatami\\..*|TUI\\..*)" },
   tag = "+terminal",
 })
 
@@ -350,53 +350,53 @@ hl.window_rule({ match = { tag = "default-opacity" }, opacity = "0.985 0.96" })
 -- installed; none are on this system, as after Omarchy's "remove preinstalls".
 -------------------------------------------------------------------------------
 
-hl.bind("SUPER + RETURN", hl.dsp.exec_cmd("omarchy terminal"), { description = "Terminal" })
-hl.bind("SUPER + SHIFT + RETURN", hl.dsp.exec_cmd("omarchy browser"), { description = "Browser" })
-hl.bind("SUPER + SHIFT + F", hl.dsp.exec_cmd("omarchy files"), { description = "File manager" })
-hl.bind("SUPER + ALT + SHIFT + F", hl.dsp.exec_cmd("omarchy files --cwd"), { description = "File manager (cwd)" })
-hl.bind("SUPER + SHIFT + B", hl.dsp.exec_cmd("omarchy browser"), { description = "Browser" })
-hl.bind("SUPER + SHIFT + ALT + B", hl.dsp.exec_cmd("omarchy browser --private"), { description = "Browser (private)" })
-hl.bind("SUPER + SHIFT + N", hl.dsp.exec_cmd("omarchy editor"), { description = "Editor" })
+hl.bind("SUPER + RETURN", hl.dsp.exec_cmd("tatami terminal"), { description = "Terminal" })
+hl.bind("SUPER + SHIFT + RETURN", hl.dsp.exec_cmd("tatami browser"), { description = "Browser" })
+hl.bind("SUPER + SHIFT + F", hl.dsp.exec_cmd("tatami files"), { description = "File manager" })
+hl.bind("SUPER + ALT + SHIFT + F", hl.dsp.exec_cmd("tatami files --cwd"), { description = "File manager (cwd)" })
+hl.bind("SUPER + SHIFT + B", hl.dsp.exec_cmd("tatami browser"), { description = "Browser" })
+hl.bind("SUPER + SHIFT + ALT + B", hl.dsp.exec_cmd("tatami browser --private"), { description = "Browser (private)" })
+hl.bind("SUPER + SHIFT + N", hl.dsp.exec_cmd("tatami editor"), { description = "Editor" })
 
 -------------------------------------------------------------------------------
 -- Media keys (default/hypr/bindings/media.lua)
 -------------------------------------------------------------------------------
 
-hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("omarchy volume raise"), { locked = true, repeating = true, description = "Volume up" })
-hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("omarchy volume lower"), { locked = true, repeating = true, description = "Volume down" })
-hl.bind("XF86AudioMute", hl.dsp.exec_cmd("omarchy volume mute-toggle"), { locked = true, description = "Mute" })
-hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("omarchy mic-mute"), { locked = true, description = "Mute microphone" })
-hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("omarchy brightness +5%"), { locked = true, repeating = true, description = "Brightness up" })
-hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("omarchy brightness 5%-"), { locked = true, repeating = true, description = "Brightness down" })
-hl.bind("SHIFT + XF86MonBrightnessUp", hl.dsp.exec_cmd("omarchy brightness 100%"), { locked = true, repeating = true, description = "Brightness maximum" })
-hl.bind("SHIFT + XF86MonBrightnessDown", hl.dsp.exec_cmd("omarchy brightness 1%"), { locked = true, repeating = true, description = "Brightness minimum" })
-hl.bind("XF86KbdBrightnessUp", hl.dsp.exec_cmd("omarchy keyboard-brightness up"), { locked = true, repeating = true, description = "Keyboard brightness up" })
-hl.bind("XF86KbdBrightnessDown", hl.dsp.exec_cmd("omarchy keyboard-brightness down"), { locked = true, repeating = true, description = "Keyboard brightness down" })
-hl.bind("XF86KbdLightOnOff", hl.dsp.exec_cmd("omarchy keyboard-brightness cycle"), { locked = true, description = "Keyboard backlight cycle" })
-hl.bind("XF86TouchpadToggle", hl.dsp.exec_cmd("omarchy touchpad toggle"), { locked = true, description = "Toggle touchpad" })
-hl.bind("XF86TouchpadOn", hl.dsp.exec_cmd("omarchy touchpad on"), { locked = true, description = "Enable touchpad" })
-hl.bind("XF86TouchpadOff", hl.dsp.exec_cmd("omarchy touchpad off"), { locked = true, description = "Disable touchpad" })
+hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("tatami volume raise"), { locked = true, repeating = true, description = "Volume up" })
+hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("tatami volume lower"), { locked = true, repeating = true, description = "Volume down" })
+hl.bind("XF86AudioMute", hl.dsp.exec_cmd("tatami volume mute-toggle"), { locked = true, description = "Mute" })
+hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("tatami mic-mute"), { locked = true, description = "Mute microphone" })
+hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("tatami brightness +5%"), { locked = true, repeating = true, description = "Brightness up" })
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("tatami brightness 5%-"), { locked = true, repeating = true, description = "Brightness down" })
+hl.bind("SHIFT + XF86MonBrightnessUp", hl.dsp.exec_cmd("tatami brightness 100%"), { locked = true, repeating = true, description = "Brightness maximum" })
+hl.bind("SHIFT + XF86MonBrightnessDown", hl.dsp.exec_cmd("tatami brightness 1%"), { locked = true, repeating = true, description = "Brightness minimum" })
+hl.bind("XF86KbdBrightnessUp", hl.dsp.exec_cmd("tatami keyboard-brightness up"), { locked = true, repeating = true, description = "Keyboard brightness up" })
+hl.bind("XF86KbdBrightnessDown", hl.dsp.exec_cmd("tatami keyboard-brightness down"), { locked = true, repeating = true, description = "Keyboard brightness down" })
+hl.bind("XF86KbdLightOnOff", hl.dsp.exec_cmd("tatami keyboard-brightness cycle"), { locked = true, description = "Keyboard backlight cycle" })
+hl.bind("XF86TouchpadToggle", hl.dsp.exec_cmd("tatami touchpad toggle"), { locked = true, description = "Toggle touchpad" })
+hl.bind("XF86TouchpadOn", hl.dsp.exec_cmd("tatami touchpad on"), { locked = true, description = "Enable touchpad" })
+hl.bind("XF86TouchpadOff", hl.dsp.exec_cmd("tatami touchpad off"), { locked = true, description = "Disable touchpad" })
 
-hl.bind("ALT + XF86AudioRaiseVolume", hl.dsp.exec_cmd("omarchy volume +1"), { locked = true, repeating = true, description = "Volume up precise" })
-hl.bind("ALT + XF86AudioLowerVolume", hl.dsp.exec_cmd("omarchy volume -1"), { locked = true, repeating = true, description = "Volume down precise" })
-hl.bind("ALT + XF86MonBrightnessUp", hl.dsp.exec_cmd("omarchy brightness +1%"), { locked = true, repeating = true, description = "Brightness up precise" })
-hl.bind("ALT + XF86MonBrightnessDown", hl.dsp.exec_cmd("omarchy brightness 1%-"), { locked = true, repeating = true, description = "Brightness down precise" })
+hl.bind("ALT + XF86AudioRaiseVolume", hl.dsp.exec_cmd("tatami volume +1"), { locked = true, repeating = true, description = "Volume up precise" })
+hl.bind("ALT + XF86AudioLowerVolume", hl.dsp.exec_cmd("tatami volume -1"), { locked = true, repeating = true, description = "Volume down precise" })
+hl.bind("ALT + XF86MonBrightnessUp", hl.dsp.exec_cmd("tatami brightness +1%"), { locked = true, repeating = true, description = "Brightness up precise" })
+hl.bind("ALT + XF86MonBrightnessDown", hl.dsp.exec_cmd("tatami brightness 1%-"), { locked = true, repeating = true, description = "Brightness down precise" })
 
-hl.bind("XF86AudioNext", hl.dsp.exec_cmd("omarchy media next"), { locked = true, description = "Next track" })
-hl.bind("ALT + XF86AudioPlay", hl.dsp.exec_cmd("omarchy media next"), { locked = true, description = "Next track" })
-hl.bind("XF86AudioPause", hl.dsp.exec_cmd("omarchy media play-pause"), { locked = true, description = "Pause" })
-hl.bind("XF86AudioPlay", hl.dsp.exec_cmd("omarchy media play-pause"), { locked = true, description = "Play" })
-hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("omarchy media previous"), { locked = true, description = "Previous track" })
-hl.bind("ALT + SHIFT + XF86AudioPlay", hl.dsp.exec_cmd("omarchy media previous"), { locked = true, description = "Previous track" })
+hl.bind("XF86AudioNext", hl.dsp.exec_cmd("tatami media next"), { locked = true, description = "Next track" })
+hl.bind("ALT + XF86AudioPlay", hl.dsp.exec_cmd("tatami media next"), { locked = true, description = "Next track" })
+hl.bind("XF86AudioPause", hl.dsp.exec_cmd("tatami media play-pause"), { locked = true, description = "Pause" })
+hl.bind("XF86AudioPlay", hl.dsp.exec_cmd("tatami media play-pause"), { locked = true, description = "Play" })
+hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("tatami media previous"), { locked = true, description = "Previous track" })
+hl.bind("ALT + SHIFT + XF86AudioPlay", hl.dsp.exec_cmd("tatami media previous"), { locked = true, description = "Previous track" })
 hl.bind("XF86Eject", hl.dsp.exec_cmd("eject"), { locked = true, description = "Eject media" })
 
 -------------------------------------------------------------------------------
 -- Clipboard (default/hypr/bindings/clipboard.lua)
 -------------------------------------------------------------------------------
 
-hl.bind("SUPER + C", hl.dsp.exec_cmd("omarchy clipboard copy"), { description = "Universal copy" })
-hl.bind("SUPER + V", hl.dsp.exec_cmd("omarchy clipboard paste"), { description = "Universal paste" })
-hl.bind("SUPER + X", hl.dsp.exec_cmd("omarchy clipboard cut"), { description = "Universal cut" })
+hl.bind("SUPER + C", hl.dsp.exec_cmd("tatami clipboard copy"), { description = "Universal copy" })
+hl.bind("SUPER + V", hl.dsp.exec_cmd("tatami clipboard paste"), { description = "Universal paste" })
+hl.bind("SUPER + X", hl.dsp.exec_cmd("tatami clipboard cut"), { description = "Universal cut" })
 hl.bind("SUPER + CTRL + V", hl.dsp.exec_cmd("walker -m clipboard -p Clipboard…"), { description = "Clipboard manager" })
 
 -------------------------------------------------------------------------------
@@ -404,16 +404,16 @@ hl.bind("SUPER + CTRL + V", hl.dsp.exec_cmd("walker -m clipboard -p Clipboard…
 -------------------------------------------------------------------------------
 
 hl.bind("SUPER + W", hl.dsp.window.close(), { description = "Close window" })
-hl.bind("CTRL + ALT + DELETE", hl.dsp.exec_cmd("omarchy window close-all"), { description = "Close all windows" })
+hl.bind("CTRL + ALT + DELETE", hl.dsp.exec_cmd("tatami window close-all"), { description = "Close all windows" })
 
 hl.bind("SUPER + J", hl.dsp.layout("togglesplit"), { description = "Toggle window split" })
 hl.bind("SUPER + P", hl.dsp.window.pseudo(), { description = "Pseudo window" })
 hl.bind("SUPER + T", hl.dsp.window.float({ action = "toggle" }), { description = "Toggle window floating/tiling" })
 hl.bind("SUPER + F", hl.dsp.window.fullscreen({ mode = "fullscreen" }), { description = "Full screen" })
-hl.bind("SUPER + CTRL + F", hl.dsp.exec_cmd("omarchy window tiled-fullscreen"), { description = "Tiled full screen" })
+hl.bind("SUPER + CTRL + F", hl.dsp.exec_cmd("tatami window tiled-fullscreen"), { description = "Tiled full screen" })
 hl.bind("SUPER + ALT + F", hl.dsp.window.fullscreen({ mode = "maximized" }), { description = "Full width" })
-hl.bind("SUPER + O", hl.dsp.exec_cmd("omarchy window pop"), { description = "Pop window out (float & pin)" })
-hl.bind("SUPER + L", hl.dsp.exec_cmd("omarchy toggle layout"), { description = "Toggle workspace layout" })
+hl.bind("SUPER + O", hl.dsp.exec_cmd("tatami window pop"), { description = "Pop window out (float & pin)" })
+hl.bind("SUPER + L", hl.dsp.exec_cmd("tatami toggle layout"), { description = "Toggle workspace layout" })
 
 hl.bind("SUPER + LEFT", hl.dsp.focus({ direction = "l" }), { description = "Focus on left window" })
 hl.bind("SUPER + RIGHT", hl.dsp.focus({ direction = "r" }), { description = "Focus on right window" })
@@ -522,63 +522,63 @@ hl.bind("SUPER + ALT + code:12", hl.dsp.group.active({ index = 3 }), { descripti
 hl.bind("SUPER + ALT + code:13", hl.dsp.group.active({ index = 4 }), { description = "Switch to group window 4" })
 hl.bind("SUPER + ALT + code:14", hl.dsp.group.active({ index = 5 }), { description = "Switch to group window 5" })
 
-hl.bind("SUPER + slash", hl.dsp.exec_cmd("omarchy scale up"), { description = "Monitor scaling up" })
-hl.bind("SUPER + ALT + slash", hl.dsp.exec_cmd("omarchy scale down"), { description = "Monitor scaling down" })
+hl.bind("SUPER + slash", hl.dsp.exec_cmd("tatami scale up"), { description = "Monitor scaling up" })
+hl.bind("SUPER + ALT + slash", hl.dsp.exec_cmd("tatami scale down"), { description = "Monitor scaling down" })
 
 -------------------------------------------------------------------------------
 -- Utilities (default/hypr/bindings/utilities.lua)
 -------------------------------------------------------------------------------
 
 -- Menus
-hl.bind("SUPER + SPACE", hl.dsp.exec_cmd("omarchy menu"), { description = "Omarchy menu" })
-hl.bind("SUPER + ALT + SPACE", hl.dsp.exec_cmd("omarchy apps"), { description = "Apps menu" })
+hl.bind("SUPER + SPACE", hl.dsp.exec_cmd("tatami menu"), { description = "Tatami menu" })
+hl.bind("SUPER + ALT + SPACE", hl.dsp.exec_cmd("tatami apps"), { description = "Apps menu" })
 hl.bind("SUPER + CTRL + E", hl.dsp.exec_cmd("walker -m symbols -p Emojis…"), { description = "Emojis" })
-hl.bind("SUPER + CTRL + C", hl.dsp.exec_cmd("omarchy menu capture"), { description = "Capture menu" })
-hl.bind("SUPER + CTRL + O", hl.dsp.exec_cmd("omarchy menu toggle"), { description = "Toggle menu" })
-hl.bind("SUPER + CTRL + H", hl.dsp.exec_cmd("omarchy menu hardware"), { description = "Hardware menu" })
-hl.bind("SUPER + SHIFT + code:201", hl.dsp.exec_cmd("omarchy menu"), { description = "Omarchy menu" })
-hl.bind("SUPER + ESCAPE", hl.dsp.exec_cmd("omarchy menu system"), { description = "System menu" })
-hl.bind("XF86PowerOff", hl.dsp.exec_cmd("omarchy menu system"), { locked = true, description = "Power menu" })
-hl.bind("SUPER + K", hl.dsp.exec_cmd("omarchy keybindings"), { description = "Keybindings" })
-hl.bind("SUPER + CTRL + Q", hl.dsp.exec_cmd("omarchy launch gnome-calculator"), { description = "Calculator" })
-hl.bind("XF86Calculator", hl.dsp.exec_cmd("omarchy launch gnome-calculator"), { description = "Calculator" })
+hl.bind("SUPER + CTRL + C", hl.dsp.exec_cmd("tatami menu capture"), { description = "Capture menu" })
+hl.bind("SUPER + CTRL + O", hl.dsp.exec_cmd("tatami menu toggle"), { description = "Toggle menu" })
+hl.bind("SUPER + CTRL + H", hl.dsp.exec_cmd("tatami menu hardware"), { description = "Hardware menu" })
+hl.bind("SUPER + SHIFT + code:201", hl.dsp.exec_cmd("tatami menu"), { description = "Tatami menu" })
+hl.bind("SUPER + ESCAPE", hl.dsp.exec_cmd("tatami menu system"), { description = "System menu" })
+hl.bind("XF86PowerOff", hl.dsp.exec_cmd("tatami menu system"), { locked = true, description = "Power menu" })
+hl.bind("SUPER + K", hl.dsp.exec_cmd("tatami keybindings"), { description = "Keybindings" })
+hl.bind("SUPER + CTRL + Q", hl.dsp.exec_cmd("tatami launch gnome-calculator"), { description = "Calculator" })
+hl.bind("XF86Calculator", hl.dsp.exec_cmd("tatami launch gnome-calculator"), { description = "Calculator" })
 
 -- Aesthetics
-hl.bind("SUPER + SHIFT + SPACE", hl.dsp.exec_cmd("omarchy toggle bar"), { description = "Toggle top bar" })
-hl.bind("SUPER + BACKSPACE", hl.dsp.exec_cmd("omarchy window transparency"), { description = "Toggle window transparency" })
-hl.bind("SUPER + SHIFT + BACKSPACE", hl.dsp.exec_cmd("omarchy toggle gaps"), { description = "Toggle window gaps" })
-hl.bind("SUPER + CTRL + BACKSPACE", hl.dsp.exec_cmd("omarchy toggle aspect"), { description = "Toggle single-window square aspect" })
+hl.bind("SUPER + SHIFT + SPACE", hl.dsp.exec_cmd("tatami toggle bar"), { description = "Toggle top bar" })
+hl.bind("SUPER + BACKSPACE", hl.dsp.exec_cmd("tatami window transparency"), { description = "Toggle window transparency" })
+hl.bind("SUPER + SHIFT + BACKSPACE", hl.dsp.exec_cmd("tatami toggle gaps"), { description = "Toggle window gaps" })
+hl.bind("SUPER + CTRL + BACKSPACE", hl.dsp.exec_cmd("tatami toggle aspect"), { description = "Toggle single-window square aspect" })
 
 -- Notifications. xkbcommon names the comma keysym "comma"; "COMMA" does not match.
 hl.bind("SUPER + comma", hl.dsp.exec_cmd("makoctl dismiss"), { description = "Dismiss last notification" })
 hl.bind("SUPER + SHIFT + comma", hl.dsp.exec_cmd("makoctl dismiss --all"), { description = "Dismiss all notifications" })
-hl.bind("SUPER + CTRL + comma", hl.dsp.exec_cmd("omarchy toggle notifications"), { description = "Toggle silencing notifications" })
+hl.bind("SUPER + CTRL + comma", hl.dsp.exec_cmd("tatami toggle notifications"), { description = "Toggle silencing notifications" })
 hl.bind("SUPER + ALT + comma", hl.dsp.exec_cmd("makoctl invoke"), { description = "Invoke last notification" })
 hl.bind("SUPER + SHIFT + ALT + comma", hl.dsp.exec_cmd("makoctl restore"), { description = "Restore last notification" })
 
 -- Toggles
-hl.bind("SUPER + CTRL + I", hl.dsp.exec_cmd("omarchy toggle idle"), { description = "Toggle locking on idle" })
-hl.bind("SUPER + CTRL + N", hl.dsp.exec_cmd("omarchy toggle nightlight"), { description = "Toggle nightlight" })
-hl.bind("SUPER + CTRL + Delete", hl.dsp.exec_cmd("omarchy laptop-display"), { description = "Toggle laptop display" })
+hl.bind("SUPER + CTRL + I", hl.dsp.exec_cmd("tatami toggle idle"), { description = "Toggle locking on idle" })
+hl.bind("SUPER + CTRL + N", hl.dsp.exec_cmd("tatami toggle nightlight"), { description = "Toggle nightlight" })
+hl.bind("SUPER + CTRL + Delete", hl.dsp.exec_cmd("tatami laptop-display"), { description = "Toggle laptop display" })
 
 -- Captures
-hl.bind("PRINT", hl.dsp.exec_cmd("omarchy screenshot"), { description = "Screenshot" })
-hl.bind("SUPER + PRINT", hl.dsp.exec_cmd("omarchy color-picker"), { description = "Color picker" })
+hl.bind("PRINT", hl.dsp.exec_cmd("tatami screenshot"), { description = "Screenshot" })
+hl.bind("SUPER + PRINT", hl.dsp.exec_cmd("tatami color-picker"), { description = "Color picker" })
 
 -- Notifications on demand
-hl.bind("SUPER + CTRL + ALT + T", hl.dsp.exec_cmd("omarchy notify time"), { description = "Show time" })
-hl.bind("SUPER + CTRL + ALT + B", hl.dsp.exec_cmd("omarchy notify battery"), { description = "Show battery remaining" })
+hl.bind("SUPER + CTRL + ALT + T", hl.dsp.exec_cmd("tatami notify time"), { description = "Show time" })
+hl.bind("SUPER + CTRL + ALT + B", hl.dsp.exec_cmd("tatami notify battery"), { description = "Show battery remaining" })
 
 -- Control panels: Omarchy's bar panels, as terminal applications and menus.
-hl.bind("SUPER + CTRL + A", hl.dsp.exec_cmd("omarchy tui wiremix"), { description = "Audio" })
-hl.bind("SUPER + CTRL + B", hl.dsp.exec_cmd("omarchy tui bluetui"), { description = "Bluetooth" })
-hl.bind("SUPER + CTRL + D", hl.dsp.exec_cmd("omarchy menu display"), { description = "Display" })
-hl.bind("SUPER + CTRL + W", hl.dsp.exec_cmd("omarchy tui nmtui"), { description = "Network" })
-hl.bind("SUPER + CTRL + P", hl.dsp.exec_cmd("omarchy power-profile"), { description = "Power" })
-hl.bind("SUPER + CTRL + T", hl.dsp.exec_cmd("omarchy tui btop"), { description = "Activity" })
+hl.bind("SUPER + CTRL + A", hl.dsp.exec_cmd("tatami tui wiremix"), { description = "Audio" })
+hl.bind("SUPER + CTRL + B", hl.dsp.exec_cmd("tatami tui bluetui"), { description = "Bluetooth" })
+hl.bind("SUPER + CTRL + D", hl.dsp.exec_cmd("tatami menu display"), { description = "Display" })
+hl.bind("SUPER + CTRL + W", hl.dsp.exec_cmd("tatami tui nmtui"), { description = "Network" })
+hl.bind("SUPER + CTRL + P", hl.dsp.exec_cmd("tatami power-profile"), { description = "Power" })
+hl.bind("SUPER + CTRL + T", hl.dsp.exec_cmd("tatami tui btop"), { description = "Activity" })
 
 -- Cursor zoom
-hl.bind("SUPER + CTRL + Z", hl.dsp.exec_cmd("omarchy zoom in"), { description = "Zoom in" })
-hl.bind("SUPER + CTRL + ALT + Z", hl.dsp.exec_cmd("omarchy zoom reset"), { description = "Reset zoom" })
+hl.bind("SUPER + CTRL + Z", hl.dsp.exec_cmd("tatami zoom in"), { description = "Zoom in" })
+hl.bind("SUPER + CTRL + ALT + Z", hl.dsp.exec_cmd("tatami zoom reset"), { description = "Reset zoom" })
 
-hl.bind("SUPER + CTRL + L", hl.dsp.exec_cmd("omarchy lock"), { description = "Lock system" })
+hl.bind("SUPER + CTRL + L", hl.dsp.exec_cmd("tatami lock"), { description = "Lock system" })

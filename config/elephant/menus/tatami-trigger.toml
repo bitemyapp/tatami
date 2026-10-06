@@ -1,7 +1,7 @@
-# Trigger › in the Omarchy menu (see omarchy.toml).
-name = "omarchy-trigger"
+# Trigger › in the Tatami menu (see tatami.toml).
+name = "tatami-trigger"
 name_pretty = "Trigger"
-parent = "omarchy"
+parent = "tatami"
 fixed_order = true
 hide_from_providerlist = true
 action = "%VALUE%"
@@ -9,23 +9,23 @@ action = "%VALUE%"
 [[entries]]
 text = "Emoji"
 icon = ""
-value = "omarchy emoji"
+value = "tatami emoji"
 keywords = ["emoji", "emojis"]
 
 [[entries]]
 text = "Capture"
 icon = ""
-submenu = "omarchy-capture"
+submenu = "tatami-capture"
 keywords = ["capture", "screenshot"]
 
 [[entries]]
 text = "Toggle"
 icon = "󰔎"
-submenu = "omarchy-toggle"
+submenu = "tatami-toggle"
 keywords = ["toggle", "toggles"]
 
 [[entries]]
 text = "Hardware"
 icon = ""
-submenu = "omarchy-hardware"
+submenu = "tatami-hardware"
 keywords = ["hardware", "hw"]

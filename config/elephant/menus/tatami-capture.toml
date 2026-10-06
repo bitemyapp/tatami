@@ -1,7 +1,7 @@
-# Capture › in the Omarchy menu (see omarchy.toml).
-name = "omarchy-capture"
+# Capture › in the Tatami menu (see tatami.toml).
+name = "tatami-capture"
 name_pretty = "Capture"
-parent = "omarchy-trigger"
+parent = "tatami-trigger"
 fixed_order = true
 hide_from_providerlist = true
 action = "%VALUE%"
@@ -9,9 +9,9 @@ action = "%VALUE%"
 [[entries]]
 text = "Screenshot"
 icon = ""
-value = "omarchy screenshot"
+value = "tatami screenshot"
 
 [[entries]]
 text = "Color"
 icon = "󰃉"
-value = "omarchy color-picker"
+value = "tatami color-picker"

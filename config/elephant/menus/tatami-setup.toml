@@ -1,7 +1,7 @@
-# Setup › in the Omarchy menu (see omarchy.toml).
-name = "omarchy-setup"
+# Setup › in the Tatami menu (see tatami.toml).
+name = "tatami-setup"
 name_pretty = "Setup"
-parent = "omarchy"
+parent = "tatami"
 fixed_order = true
 hide_from_providerlist = true
 action = "%VALUE%"
@@ -9,31 +9,31 @@ action = "%VALUE%"
 [[entries]]
 text = "Audio"
 icon = "󰓃"
-value = "omarchy tui wiremix"
+value = "tatami tui wiremix"
 
 [[entries]]
 text = "Network"
 icon = "󰛳"
-value = "omarchy tui nmtui"
+value = "tatami tui nmtui"
 keywords = ["wifi", "network"]
 
 [[entries]]
 text = "Bluetooth"
 icon = "󰂯"
-value = "omarchy tui bluetui"
+value = "tatami tui bluetui"
 
 [[entries]]
 text = "Power Profile"
 icon = "󱐋"
-value = "omarchy power-profile"
+value = "tatami power-profile"
 
 [[entries]]
 text = "Display"
 icon = "󰍹"
-submenu = "omarchy-display"
+submenu = "tatami-display"
 keywords = ["monitors", "brightness", "scale"]
 
 [[entries]]
 text = "Hyprland"
 icon = ""
-value = "omarchy edit-config"
+value = "tatami edit-config"

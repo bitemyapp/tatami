@@ -1,5 +1,5 @@
 # Applications started from the launcher get their own systemd scope (as
 # Omarchy's uwsm-app does) but keep this service's environment, which
-# includes the Omarchy configuration directory; uwsm-app's daemon would not.
+# includes the Tatami configuration directory; uwsm-app's daemon would not.
 launch_prefix = "systemd-run --user --scope --quiet --collect --slice=app-graphical.slice --"
 terminal_cmd = "xdg-terminal-exec"

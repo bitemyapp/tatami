@@ -1,7 +1,7 @@
-# Hardware › in the Omarchy menu (see omarchy.toml).
-name = "omarchy-hardware"
+# Hardware › in the Tatami menu (see tatami.toml).
+name = "tatami-hardware"
 name_pretty = "Hardware"
-parent = "omarchy-trigger"
+parent = "tatami-trigger"
 fixed_order = true
 hide_from_providerlist = true
 action = "%VALUE%"
@@ -9,9 +9,9 @@ action = "%VALUE%"
 [[entries]]
 text = "Laptop Display"
 icon = "󰛧"
-value = "omarchy laptop-display"
+value = "tatami laptop-display"
 
 [[entries]]
 text = "Touchpad"
 icon = "󰟸"
-value = "omarchy touchpad toggle"
+value = "tatami touchpad toggle"

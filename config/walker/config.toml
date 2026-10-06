@@ -1,8 +1,8 @@
-# Omarchy-style launcher and menu, after Omarchy 4's launcher and menu
+# Tatami launcher and menu, after Omarchy 4's launcher and menu
 # (MIT, see ../../LICENSE). The menu tree is in ../elephant/menus.
 force_keyboard_focus = true
 selection_wrap = true
-theme = "omarchy-default"
+theme = "tatami-default"
 hide_action_hints = true
 hide_quick_activation = true
 
@@ -20,11 +20,11 @@ symbols = 1
 max_results = 256
 default = ["desktopapplications", "websearch"]
 
-# The Omarchy menu (`omarchy menu`): its root when the search is empty, and
+# The Tatami menu (`tatami menu`): its root when the search is empty, and
 # a search across every menu entry and application once typing starts.
-[providers.sets.omarchy]
+[providers.sets.tatami]
 default = ["desktopapplications", "menus"]
-empty = ["menus:omarchy"]
+empty = ["menus:tatami"]
 
 # As in Omarchy's menu: Escape closes, Left goes back to the parent menu and
 # Right or Return opens a submenu.

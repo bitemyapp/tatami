@@ -51,7 +51,7 @@ pub fn spawn(program: &str, args: &[&str]) {
 /// compositor's unit, where systemd-oomd under memory pressure would stop the
 /// whole session instead of the one application. A scope runs the program
 /// from here, so it keeps this session's environment (XDG_CONFIG_DIRS with
-/// the Omarchy configuration), which uwsm-app's daemon would not pass on.
+/// the Tatami configuration), which uwsm-app's daemon would not pass on.
 pub fn launch(program: &str, args: &[&str]) {
     if which("systemd-run").is_some() {
         let mut full = vec![
@@ -129,13 +129,13 @@ pub fn home() -> String {
     std::env::var("HOME").unwrap_or_else(|_| "/".into())
 }
 
-/// $XDG_STATE_HOME/omarchy; an unset or relative variable means ~/.local/state.
+/// $XDG_STATE_HOME/tatami; an unset or relative variable means ~/.local/state.
 pub fn state_dir() -> std::path::PathBuf {
     let base = std::env::var("XDG_STATE_HOME")
         .ok()
         .filter(|dir| dir.starts_with('/'))
         .unwrap_or_else(|| format!("{}/.local/state", home()));
-    std::path::Path::new(&base).join("omarchy")
+    std::path::Path::new(&base).join("tatami")
 }
 
 /// Processes whose command name matches, from /proc.

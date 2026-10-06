@@ -5,7 +5,7 @@ let
   # must produce the same derivation wherever this directory lives.
   source = builtins.path {
     path = ./.;
-    name = "calamares-omarchy-tool-src";
+    name = "calamares-tatami-tool-src";
     filter =
       path: _:
       !(builtins.elem (baseNameOf path) [
@@ -15,13 +15,13 @@ let
   };
 in
 rustPlatform.buildRustPackage {
-  pname = "calamares-omarchy-tool";
+  pname = "calamares-tatami-tool";
   version = "0.1.0";
   src = source;
   cargoLock.lockFile = "${source}/Cargo.lock";
   meta = {
-    description = "Session launcher and desktop commands for Omarchy-style Hyprland";
+    description = "Session launcher and desktop commands for Tatami";
     license = lib.licenses.gpl3Plus;
-    mainProgram = "omarchy";
+    mainProgram = "tatami";
   };
 }

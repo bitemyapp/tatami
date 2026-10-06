@@ -3,7 +3,7 @@
 version = 4
 
 [[package]]
-name = "calamares-omarchy-tool"
+name = "calamares-tatami-tool"
 version = "0.1.0"
 dependencies = [
  "libc",

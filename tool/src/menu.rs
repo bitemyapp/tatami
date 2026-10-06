@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! The Omarchy menu in Walker. Its tree is Elephant menu definitions in
-//! /etc/xdg/omarchy/elephant/menus, after Omarchy 4's omarchy-menu.jsonc
+//! The Tatami menu in Walker. Its tree is Elephant menu definitions in
+//! /etc/xdg/tatami/elephant/menus, after Omarchy 4's omarchy-menu.jsonc
 //! without its Arch package, update and theme entries. This opens it at the
 //! root or a submenu, opens the application list, and shows the pickers whose
 //! entries are only known at run time.
@@ -19,13 +19,13 @@ pub const MENUS: &[(&str, &str)] = &[
     ("system", "System"),
 ];
 
-/// Walker arguments for a menu. The root uses the "omarchy" provider set,
+/// Walker arguments for a menu. The root uses the "tatami" provider set,
 /// whose search also finds applications, as Omarchy's root menu does.
 pub fn walker_args(name: &str) -> Option<Vec<String>> {
     if matches!(name, "" | "root") {
         return Some(vec![
             "-s".into(),
-            "omarchy".into(),
+            "tatami".into(),
             "-p".into(),
             "Go…".into(),
         ]);
@@ -33,7 +33,7 @@ pub fn walker_args(name: &str) -> Option<Vec<String>> {
     let (_, title) = MENUS.iter().find(|(id, _)| *id == name)?;
     Some(vec![
         "-m".into(),
-        format!("menus:omarchy-{name}"),
+        format!("menus:tatami-{name}"),
         "-p".into(),
         format!("{title}…"),
     ])
@@ -225,10 +225,10 @@ mod tests {
     use super::*;
     #[test]
     fn menus_open_at_the_root_or_a_submenu() {
-        assert_eq!(walker_args("").unwrap()[..2], ["-s", "omarchy"]);
+        assert_eq!(walker_args("").unwrap()[..2], ["-s", "tatami"]);
         assert_eq!(
             walker_args("system").unwrap(),
-            ["-m", "menus:omarchy-system", "-p", "System…"]
+            ["-m", "menus:tatami-system", "-p", "System…"]
         );
         assert!(walker_args("install").is_none());
     }

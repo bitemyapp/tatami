@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! `omarchy`: session launcher and desktop commands for the Omarchy-style
-//! Hyprland session, replacing the Bash `omarchy-*` scripts of Omarchy 4
+//! `tatami`: session launcher and desktop commands for the Tatami session
+//! (keyboard-driven Hyprland inspired by Omarchy), replacing the Bash `omarchy-*` scripts of Omarchy 4
 //! (https://github.com/basecamp/omarchy, MIT) that it is modelled on.
 mod browser;
 mod capture;
@@ -17,11 +17,11 @@ mod window;
 
 use std::{path::Path, process::ExitCode};
 
-/// Omarchy-style configuration shipped by the NixOS module.
-pub const CONFIG: &str = "/etc/xdg/omarchy";
+/// Tatami configuration shipped by the NixOS module.
+pub const CONFIG: &str = "/etc/xdg/tatami";
 
-const USAGE: &str = "usage: omarchy <command>
-  session                         start Hyprland with the Omarchy-style configuration
+const USAGE: &str = "usage: tatami <command>
+  session                         start Hyprland with the Tatami configuration
   restore                         apply remembered toggles (session start)
   menu [learn|trigger|capture|toggle|hardware|setup|display|system]
   apps | emoji | keybindings | about | power-profile | edit-config
@@ -41,7 +41,7 @@ const USAGE: &str = "usage: omarchy <command>
   notify <time|battery> | bluetooth-toggle
   lock [--lock-only] | wake [seconds] | logout | reboot | shutdown | suspend | hibernate";
 
-/// XDG_CONFIG_DIRS with the Omarchy directory first, without duplicates.
+/// XDG_CONFIG_DIRS with the Tatami directory first, without duplicates.
 pub fn config_dirs(existing: Option<&str>) -> String {
     let mut dirs = vec![CONFIG];
     dirs.extend(
@@ -53,10 +53,10 @@ pub fn config_dirs(existing: Option<&str>) -> String {
     dirs.join(":")
 }
 
-/// Start the compositor. A user's own ~/.config/omarchy/hyprland.lua
+/// Start the compositor. A user's own ~/.config/tatami/hyprland.lua
 /// replaces the shipped configuration entirely.
 fn session() -> ExitCode {
-    let user = format!("{}/.config/omarchy/hyprland.lua", util::home());
+    let user = format!("{}/.config/tatami/hyprland.lua", util::home());
     let config = if Path::new(&user).is_file() {
         user
     } else {
@@ -73,7 +73,7 @@ fn session() -> ExitCode {
         )
         .args(["--", "--config", &config]);
     let error = std::os::unix::process::CommandExt::exec(&mut command);
-    eprintln!("omarchy: cannot start {launcher}: {error}");
+    eprintln!("tatami: cannot start {launcher}: {error}");
     ExitCode::FAILURE
 }
 
@@ -82,7 +82,7 @@ fn session() -> ExitCode {
 /// login on.
 fn edit_config() {
     use std::os::unix::fs::PermissionsExt;
-    let dir = format!("{}/.config/omarchy", util::home());
+    let dir = format!("{}/.config/tatami", util::home());
     let user = format!("{dir}/hyprland.lua");
     if !Path::new(&user).exists() {
         let copied = std::fs::create_dir_all(&dir).is_ok()
@@ -91,7 +91,7 @@ fn edit_config() {
         if !copied {
             util::notify(
                 "\u{f359}",
-                "Cannot create ~/.config/omarchy/hyprland.lua",
+                "Cannot create ~/.config/tatami/hyprland.lua",
                 "",
             );
             return;
@@ -99,7 +99,7 @@ fn edit_config() {
         util::notify(
             "\u{f359}",
             "Your Hyprland configuration",
-            "~/.config/omarchy/hyprland.lua replaces the default from the next login",
+            "~/.config/tatami/hyprland.lua replaces the default from the next login",
         );
     }
     terminal::editor(&[user]);
@@ -352,13 +352,13 @@ fn main() -> ExitCode {
 mod tests {
     use super::*;
     #[test]
-    fn omarchy_configuration_is_searched_first_once() {
-        assert_eq!(config_dirs(None), "/etc/xdg/omarchy:/etc/xdg");
+    fn tatami_configuration_is_searched_first_once() {
+        assert_eq!(config_dirs(None), "/etc/xdg/tatami:/etc/xdg");
         assert_eq!(
             config_dirs(Some(
-                "/etc/xdg:/etc/xdg/omarchy::/run/current-system/sw/etc/xdg"
+                "/etc/xdg:/etc/xdg/tatami::/run/current-system/sw/etc/xdg"
             )),
-            "/etc/xdg/omarchy:/etc/xdg:/run/current-system/sw/etc/xdg"
+            "/etc/xdg/tatami:/etc/xdg:/run/current-system/sw/etc/xdg"
         );
     }
 }

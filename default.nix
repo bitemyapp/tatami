@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Omarchy-style Hyprland: the look, behavior and key bindings of Omarchy 4
+# Tatami: the look, behavior and key bindings of Omarchy 4
 # "Quattro" (v4.0.4, https://github.com/basecamp/omarchy, MIT, see ./LICENSE)
 # for NixOS. Omarchy 4's Quickshell desktop shell is replaced by Waybar,
 # Walker/Elephant, Mako, SwayOSD and hyprlock styled after it, and its Bash
-# commands by the Rust `omarchy` helper. The configuration lives in
-# /etc/xdg/omarchy and is used only by this session; its components are user
+# commands by the Rust `tatami` helper. The configuration lives in
+# /etc/xdg/tatami and is used only by this session; its components are user
 # units started with the session.
 {
   config,
@@ -13,23 +13,23 @@
   ...
 }:
 let
-  cfg = config.calamares.omarchy;
-  configDir = "/etc/xdg/omarchy";
+  cfg = config.calamares.tatami;
+  configDir = "/etc/xdg/tatami";
   tool = pkgs.callPackage ./tool/package.nix { };
-  # Desktop names Hyprland:Omarchy: Hyprland first, so portals and the
-  # terminal choice follow Hyprland's; Omarchy makes uwsm load env-omarchy.
+  # Desktop names Hyprland:Tatami: Hyprland first, so portals and the
+  # terminal choice follow Hyprland's; Tatami makes uwsm load env-tatami.
   session = pkgs.writeTextFile {
-    name = "omarchy-session";
-    destination = "/share/wayland-sessions/omarchy.desktop";
+    name = "tatami-session";
+    destination = "/share/wayland-sessions/tatami.desktop";
     text = ''
       [Desktop Entry]
-      Name=Omarchy-style Hyprland
-      Comment=Hyprland in the style of Omarchy, managed by UWSM
-      Exec=${lib.getExe config.programs.uwsm.package} start -e -D Hyprland:Omarchy -N Omarchy -- ${lib.getExe tool} session
+      Name=Tatami
+      Comment=Keyboard-driven Hyprland inspired by Omarchy, managed by UWSM
+      Exec=${lib.getExe config.programs.uwsm.package} start -e -D Hyprland:Tatami -N Tatami -- ${lib.getExe tool} session
       Type=Application
-      DesktopNames=Hyprland;Omarchy
+      DesktopNames=Hyprland;Tatami
     '';
-    derivationArgs.passthru.providedSessions = [ "omarchy" ];
+    derivationArgs.passthru.providedSessions = [ "tatami" ];
   };
   # The installed keyboard layout (services.xserver.xkb) with Omarchy's
   # options: the compose key on Caps Lock, and Caps Lock on both Shifts
@@ -79,7 +79,7 @@ let
       ++ lib.optional (!latinFirst) "grp:alts_toggle"
     )
   );
-  hyprland = pkgs.writeText "omarchy-hyprland.lua" ''
+  hyprland = pkgs.writeText "tatami-hyprland.lua" ''
     ${builtins.readFile ./config/hypr/hyprland.lua}
     -- Keyboard layout of the installed system (services.xserver.xkb).
     hl.config({
@@ -100,24 +100,24 @@ let
     icon = "${icon}"
     value = "${value}"
   '';
-  systemMenu = pkgs.writeText "omarchy-system.toml" (
+  systemMenu = pkgs.writeText "tatami-system.toml" (
     ''
-      # System › in the Omarchy menu (see omarchy.toml), written by NixOS.
-      name = "omarchy-system"
+      # System › in the Tatami menu (see tatami.toml), written by NixOS.
+      name = "tatami-system"
       name_pretty = "System"
-      parent = "omarchy"
+      parent = "tatami"
       fixed_order = true
       hide_from_providerlist = true
       action = "%VALUE%"
     ''
-    + systemEntry "Lock" "\\uF023" "omarchy lock"
-    + systemEntry "Suspend" "\\U000F04B2" "omarchy suspend"
+    + systemEntry "Lock" "\\uF023" "tatami lock"
+    + systemEntry "Suspend" "\\U000F04B2" "tatami suspend"
     + lib.optionalString (config.boot.resumeDevice != "") (
-      systemEntry "Hibernate" "\\U000F0901" "omarchy hibernate"
+      systemEntry "Hibernate" "\\U000F0901" "tatami hibernate"
     )
-    + systemEntry "Logout" "\\U000F0343" "omarchy logout"
-    + systemEntry "Reboot" "\\U000F0709" "omarchy reboot"
-    + systemEntry "Shutdown" "\\U000F0425" "omarchy shutdown"
+    + systemEntry "Logout" "\\U000F0343" "tatami logout"
+    + systemEntry "Reboot" "\\U000F0709" "tatami reboot"
+    + systemEntry "Shutdown" "\\U000F0425" "tatami shutdown"
   );
   wallpaper = pkgs.nixos-artwork.wallpapers.nineish-catppuccin-mocha.gnomeFilePath;
   files = lib.filter (file: lib.path.removePrefix ./config file != "./hypr/hyprland.lua") (
@@ -125,20 +125,20 @@ let
   );
   etcFile =
     file:
-    lib.nameValuePair "xdg/omarchy/${lib.removePrefix "./" (lib.path.removePrefix ./config file)}" {
+    lib.nameValuePair "xdg/tatami/${lib.removePrefix "./" (lib.path.removePrefix ./config file)}" {
       source = file;
     };
-  # Session units: started with wayland-session@omarchy.target (uwsm names it
+  # Session units: started with wayland-session@tatami.target (uwsm names it
   # after the compositor command), so they never run in other desktops. A
   # target orders the units it wants before itself, and it precedes
   # graphical-session.target: order after the compositor and its exported
   # environment instead, which avoids an ordering cycle.
   unit = description: command: {
     inherit description;
-    wantedBy = [ "wayland-session@omarchy.target" ];
+    wantedBy = [ "wayland-session@tatami.target" ];
     partOf = [ "graphical-session.target" ];
     after = [
-      "wayland-wm@omarchy.service"
+      "wayland-wm@tatami.service"
       "wayland-session-waitenv.service"
     ];
     enableDefaultPath = false;
@@ -154,58 +154,57 @@ let
   };
 in
 {
-  options.calamares.omarchy.enable = lib.mkEnableOption "Omarchy-style Hyprland session";
+  options.calamares.tatami.enable = lib.mkEnableOption "Tatami session";
   config = lib.mkIf cfg.enable {
     # programs.hyprland and uwsm are enabled by ../hyprland.nix.
     services.displayManager.sessionPackages = [ session ];
     environment.etc = lib.listToAttrs (map etcFile files) // {
-      "xdg/omarchy/hypr/hyprland.lua".source = hyprland;
-      "xdg/omarchy/elephant/menus/omarchy-system.toml".source = systemMenu;
-      "xdg/omarchy/background".source = wallpaper;
+      "xdg/tatami/hypr/hyprland.lua".source = hyprland;
+      "xdg/tatami/elephant/menus/tatami-system.toml".source = systemMenu;
+      "xdg/tatami/background".source = wallpaper;
       # Selects the session's dconf profile (see programs.dconf below).
-      "xdg/uwsm/env-omarchy".text = ''
-        export DCONF_PROFILE=omarchy
+      "xdg/uwsm/env-tatami".text = ''
+        export DCONF_PROFILE=tatami
       '';
     };
     systemd.user.services = {
-      omarchy-waybar =
+      tatami-waybar =
         lib.recursiveUpdate
-          (unit "Omarchy-style top bar" "${lib.getExe pkgs.waybar} -c ${configDir}/waybar/config.jsonc -s ${configDir}/waybar/style.css")
+          (unit "Tatami top bar" "${lib.getExe pkgs.waybar} -c ${configDir}/waybar/config.jsonc -s ${configDir}/waybar/style.css")
           {
             # The volume module does not appear if the audio graph is not
             # ready when it connects.
             after = [
-              "wayland-wm@omarchy.service"
+              "wayland-wm@tatami.service"
               "wayland-session-waitenv.service"
               "wireplumber.service"
               "pipewire-pulse.service"
             ];
             wants = [ "wireplumber.service" ];
           };
-      omarchy-mako = unit "Omarchy-style notifications" "${pkgs.mako}/bin/mako -c ${configDir}/mako/config";
-      omarchy-swaybg = unit "Omarchy-style background" "${lib.getExe pkgs.swaybg} -i ${configDir}/background -m fill";
-      omarchy-swayosd = unit "Omarchy-style on-screen display" "${pkgs.swayosd}/bin/swayosd-server";
-      omarchy-hypridle = unit "Omarchy-style idle locking" "${lib.getExe pkgs.hypridle} -c ${configDir}/hypr/hypridle.conf";
-      omarchy-polkit = unit "Omarchy-style authentication agent" "${pkgs.hyprpolkitagent}/libexec/hyprpolkitagent";
-      omarchy-elephant = unit "Omarchy-style launcher backend" "${lib.getExe pkgs.elephant}";
-      omarchy-walker =
-        lib.recursiveUpdate
-          (unit "Omarchy-style launcher" "${lib.getExe pkgs.walker} --gapplication-service")
+      tatami-mako = unit "Tatami notifications" "${pkgs.mako}/bin/mako -c ${configDir}/mako/config";
+      tatami-swaybg = unit "Tatami background" "${lib.getExe pkgs.swaybg} -i ${configDir}/background -m fill";
+      tatami-swayosd = unit "Tatami on-screen display" "${pkgs.swayosd}/bin/swayosd-server";
+      tatami-hypridle = unit "Tatami idle locking" "${lib.getExe pkgs.hypridle} -c ${configDir}/hypr/hypridle.conf";
+      tatami-polkit = unit "Tatami authentication agent" "${pkgs.hyprpolkitagent}/libexec/hyprpolkitagent";
+      tatami-elephant = unit "Tatami launcher backend" "${lib.getExe pkgs.elephant}";
+      tatami-walker =
+        lib.recursiveUpdate (unit "Tatami launcher" "${lib.getExe pkgs.walker} --gapplication-service")
           {
             after = [
-              "wayland-wm@omarchy.service"
+              "wayland-wm@tatami.service"
               "wayland-session-waitenv.service"
-              "omarchy-elephant.service"
+              "tatami-elephant.service"
             ];
-            wants = [ "omarchy-elephant.service" ];
+            wants = [ "tatami-elephant.service" ];
             environment.GSK_RENDERER = "cairo";
           };
       # Removable drives mount automatically, as in Omarchy 4.
-      omarchy-udiskie = unit "Omarchy-style automounting" "${lib.getExe' pkgs.udiskie "udiskie"} --automount --no-notify --no-tray";
+      tatami-udiskie = unit "Tatami automounting" "${lib.getExe' pkgs.udiskie "udiskie"} --automount --no-notify --no-tray";
       # Window gaps, aspect ratio, workspace layouts, monitor scales and a
       # disabled touchpad, as the user last toggled them.
-      omarchy-restore =
-        lib.recursiveUpdate (unit "Omarchy-style remembered toggles" "${lib.getExe tool} restore")
+      tatami-restore =
+        lib.recursiveUpdate (unit "Tatami remembered toggles" "${lib.getExe tool} restore")
           {
             serviceConfig = {
               Type = "oneshot";
@@ -213,7 +212,7 @@ in
             };
           };
       # Started on demand by the nightlight toggle.
-      omarchy-hyprsunset = (unit "Omarchy-style nightlight" "${lib.getExe pkgs.hyprsunset}") // {
+      tatami-hyprsunset = (unit "Tatami nightlight" "${lib.getExe pkgs.hyprsunset}") // {
         wantedBy = [ ];
       };
     };
@@ -228,13 +227,13 @@ in
       settings.Hyprland = [ "foot.desktop" ];
     };
     # Dark GTK applications with Yaru icons, as Omarchy's Tokyo Night theme
-    # sets them, in this session only. uwsm reads /etc/xdg/uwsm/env-omarchy when
+    # sets them, in this session only. uwsm reads /etc/xdg/uwsm/env-tatami when
     # preparing the session, exports DCONF_PROFILE to the user manager (and so
     # to applications, the GTK portal and session units) and removes it at
     # logout, so other desktops keep their own defaults even when the user
     # manager lingers. These are defaults: the user's own settings (user-db)
     # take precedence.
-    programs.dconf.profiles.omarchy.databases = [
+    programs.dconf.profiles.tatami.databases = [
       {
         settings."org/gnome/desktop/interface" = {
           color-scheme = "prefer-dark";

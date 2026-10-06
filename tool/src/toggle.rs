@@ -4,9 +4,9 @@
 use crate::util;
 use std::{thread, time::Duration};
 
-const IDLE_UNIT: &str = "omarchy-hypridle.service";
-const BAR_UNIT: &str = "omarchy-waybar.service";
-const SUNSET_UNIT: &str = "omarchy-hyprsunset.service";
+const IDLE_UNIT: &str = "tatami-hypridle.service";
+const BAR_UNIT: &str = "tatami-waybar.service";
+const SUNSET_UNIT: &str = "tatami-hyprsunset.service";
 pub const IDLE_SIGNAL: i32 = 9;
 pub const SILENCE_SIGNAL: i32 = 10;
 pub const NIGHTLIGHT_SIGNAL: i32 = 11;
@@ -156,7 +156,7 @@ mod tests {
         assert_eq!(parse_temperature("couldn't connect"), None);
     }
     #[test]
-    fn nightlight_alternates_like_omarchy() {
+    fn nightlight_alternates_like_tatami() {
         assert_eq!(next_temperature(None), 4000);
         assert_eq!(next_temperature(Some(6000)), 4000);
         assert_eq!(next_temperature(Some(6500)), 4000);

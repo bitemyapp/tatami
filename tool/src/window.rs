@@ -2,7 +2,7 @@
 //! Window, workspace and monitor commands after Omarchy's omarchy-hyprland-*
 //! scripts. Settings changed at runtime go through `hyprctl eval`; the ones
 //! Omarchy keeps across sessions are remembered under
-//! ~/.local/state/omarchy/toggles and applied again by `omarchy restore`
+//! ~/.local/state/tatami/toggles and applied again by `tatami restore`
 //! when the next session starts (and after the reloads below).
 use crate::{hypr, util};
 use serde_json::Value;

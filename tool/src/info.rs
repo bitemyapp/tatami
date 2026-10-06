@@ -103,7 +103,7 @@ pub fn battery() {
 mod tests {
     use super::*;
     #[test]
-    fn battery_lines_read_like_omarchy() {
+    fn battery_lines_read_like_tatami() {
         let discharging = Battery {
             percent: 80,
             charging: false,
@@ -134,7 +134,7 @@ mod tests {
     }
     #[test]
     fn battery_reads_charge_counters_too() {
-        let dir = std::env::temp_dir().join(format!("omarchy-bat-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("tatami-bat-{}", std::process::id()));
         fs::create_dir_all(&dir).unwrap();
         for (name, value) in [
             ("capacity", "42"),
