@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT OR Apache-2.0
 # Tatami: the look, behavior and key bindings of Omarchy 4
 # "Quattro" (v4.0.4, https://github.com/basecamp/omarchy, MIT, see ./LICENSE.omarchy)
 # for NixOS, as a NixOS module (this flake's nixosModules.default). Omarchy 4's Quickshell desktop shell is replaced by Waybar,

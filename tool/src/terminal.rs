@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Terminals and terminal applications in foot, Omarchy 4's terminal. foot
 //! finds the Tatami configuration through XDG_CONFIG_DIRS, which the
 //! session prepends with /etc/xdg/tatami; a user's own ~/.config/foot

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Queries and dispatches through hyprctl. Hyprland 0.56 evaluates
 //! `hyprctl dispatch` arguments as Lua dispatcher expressions.
 use crate::util::{Result, output, run};

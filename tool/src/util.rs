@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Small process helpers. Commands are always given as argument vectors; no
 //! shell is involved, so selections and window titles are never interpreted.
 use std::{

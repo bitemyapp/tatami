@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Launch the default web browser, searching the desktop-entry locations that
 //! NixOS actually uses (profiles under /etc and /run), not only /usr.
 use crate::util;

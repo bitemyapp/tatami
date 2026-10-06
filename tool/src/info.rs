@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Time and battery notifications (Super+Ctrl+Alt+T and B), after Omarchy's
 //! omarchy-notification-time and omarchy-battery-status.
 use crate::util;

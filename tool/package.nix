@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT OR Apache-2.0
 { lib, rustPlatform }:
 let
   # Content-addressed source: the installation media and installed systems
@@ -21,7 +21,10 @@ rustPlatform.buildRustPackage {
   cargoLock.lockFile = "${source}/Cargo.lock";
   meta = {
     description = "Session launcher and desktop commands for Tatami";
-    license = lib.licenses.gpl3Plus;
+    license = with lib.licenses; [
+      mit
+      asl20
+    ];
     mainProgram = "tatami";
   };
 }

@@ -118,6 +118,14 @@ New code is Rust; configuration stays declarative (Nix, TOML, JSONC, CSS and
 
 ## License
 
-Tatami is licensed GPL-3.0-or-later (see [COPYING](COPYING)). The files under
-`config/` are adapted from Omarchy, MIT-licensed; its notice is in
-[LICENSE.omarchy](LICENSE.omarchy).
+Tatami is licensed under either of
+
+- the [Apache License, Version 2.0](LICENSE-APACHE), or
+- the [MIT License](LICENSE-MIT),
+
+at your option. The files under `config/` are adapted from Omarchy, which is
+MIT-licensed; its copyright notice is in [LICENSE.omarchy](LICENSE.omarchy).
+
+Unless you state otherwise, any contribution you intentionally submit for
+inclusion in Tatami, as defined in the Apache-2.0 license, is dual licensed
+as above, without additional terms or conditions.

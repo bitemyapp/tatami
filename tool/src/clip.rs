@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Universal copy, paste and cut (Super+C, V and X), after Omarchy 4's
 //! clipboard bindings: terminals get Ctrl+Insert and Shift+Insert, other
 //! windows Ctrl+C and Ctrl+V. The chord goes to the focused window with

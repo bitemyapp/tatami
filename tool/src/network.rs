@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Wi-Fi in a Walker list: the bar's network icon, Super+Ctrl+W and
 //! Setup › Network. Omarchy 4 has a Wi-Fi panel there instead of a terminal
 //! tool; this is that panel over NetworkManager. Passwords are asked for in

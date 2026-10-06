@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! `tatami`: session launcher and desktop commands for the Tatami session
 //! (keyboard-driven Hyprland inspired by Omarchy), replacing the Bash `omarchy-*` scripts of Omarchy 4
 //! (https://github.com/basecamp/omarchy, MIT) that it is modelled on.

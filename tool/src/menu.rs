@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! The Tatami menu in Walker. Its tree is Elephant menu definitions in
 //! /etc/xdg/tatami/elephant/menus, after Omarchy 4's omarchy-menu.jsonc
 //! without its Arch package, update and theme entries. This opens it at the

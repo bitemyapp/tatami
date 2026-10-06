@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Session toggles and the bar indicators that reflect them, after
 //! Omarchy 4's Stay Awake, Do Not Disturb and Night Light indicators.
 use crate::util;

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Volume, microphone, brightness and media keys with SwayOSD feedback on the
 //! focused monitor.
 use crate::{hypr, util};

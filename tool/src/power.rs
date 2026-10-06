@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Locking, waking and leaving the session.
 use crate::{CONFIG, hypr, util};
 use std::{thread, time::Duration};
