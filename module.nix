@@ -16,6 +16,7 @@ let
   cfg = config.programs.tatami;
   configDir = "/etc/xdg/tatami";
   tool = pkgs.callPackage ./tool/package.nix { };
+  wallpapers = pkgs.callPackage ./wallpapers/package.nix { };
   # Only the providers the launcher and menu use (config/walker): not
   # Arch package search, password managers or other compositors' windows.
   elephant = pkgs.elephant.override {
@@ -148,7 +149,31 @@ let
     + systemEntry "Reboot" "\\U000F0709" "tatami reboot"
     + systemEntry "Shutdown" "\\U000F0425" "tatami shutdown"
   );
-  wallpaper = pkgs.nixos-artwork.wallpapers.nineish-catppuccin-mocha.gnomeFilePath;
+  # The default background: Da Nang at night (wallpapers/README.md).
+  wallpaper = "${wallpapers}/share/backgrounds/tatami/da-nang-at-night.jpg";
+  # Style › Background: every wallpaper, with a preview, setting it on Return.
+  backgroundsMenu = pkgs.writeText "tatami-backgrounds.toml" (
+    ''
+      # Style › Background in the Tatami menu (see tatami.toml), written by NixOS
+      # from wallpapers/wallpapers.json: names with small previews, and the
+      # selected wallpaper large beside them.
+      name = "tatami-backgrounds"
+      name_pretty = "Background"
+      parent = "tatami-style"
+      fixed_order = true
+      hide_from_providerlist = true
+      action = "%VALUE%"
+    ''
+    + lib.concatMapStrings (entry: ''
+
+      [[entries]]
+      text = ${builtins.toJSON entry.name}
+      icon = "${wallpapers}/share/tatami/thumbnails/${entry.file}"
+      preview = "${wallpapers.installed entry.file}"
+      preview_type = "file"
+      value = "tatami background set ${wallpapers.installed entry.file}"
+    '') wallpapers.wallpapers
+  );
   files = lib.filter (file: lib.path.removePrefix ./config file != "./hypr/hyprland.lua") (
     lib.filesystem.listFilesRecursive ./config
   );
@@ -194,7 +219,18 @@ let
   };
 in
 {
-  options.programs.tatami.enable = lib.mkEnableOption "the Tatami desktop session";
+  options.programs.tatami = {
+    enable = lib.mkEnableOption "the Tatami desktop session";
+    wallpapers = lib.mkOption {
+      type = lib.types.package;
+      default = wallpapers;
+      readOnly = true;
+      description = ''
+        Tatami's wallpapers, installed with the session. Other desktops' modules
+        can install the same package to offer them too.
+      '';
+    };
+  };
   config = lib.mkIf cfg.enable {
     # uwsm starts graphical-session.target and the session's own target,
     # which Hyprland alone never does.
@@ -209,6 +245,7 @@ in
       // {
         "xdg/tatami/hypr/hyprland.lua".source = hyprland;
         "xdg/tatami/elephant/menus/tatami-system.toml".source = systemMenu;
+        "xdg/tatami/elephant/menus/tatami-backgrounds.toml".source = backgroundsMenu;
         "xdg/tatami/background".source = wallpaper;
         # Selects the session's dconf profile (see programs.dconf below).
         "xdg/uwsm/env-tatami".text = ''
@@ -253,7 +290,14 @@ in
           "infinity"
         ]
       );
-      tatami-swaybg = unit "Tatami background" "${lib.getExe pkgs.swaybg} -i ${configDir}/background -m fill";
+      # The background the user chose (Style › Background), a symlink in the
+      # state directory that the helper makes point at the default until then.
+      tatami-swaybg =
+        lib.recursiveUpdate
+          (unit "Tatami background" "${lib.getExe pkgs.swaybg} -i %S/tatami/background -m fill")
+          {
+            serviceConfig.ExecStartPre = "${lib.getExe tool} background ensure";
+          };
       tatami-swayosd = unit "Tatami on-screen display" "${pkgs.swayosd}/bin/swayosd-server";
       tatami-hypridle = unit "Tatami idle locking" "${lib.getExe pkgs.hypridle} -c ${configDir}/hypr/hypridle.conf";
       # Dark, in Tokyo Night: Qt's built-in KDE platform theme reads the
@@ -337,8 +381,19 @@ in
     # Trigger › Capture › Screenrecord: gpu-screen-recorder, with the
     # capability wrapper it needs to record a monitor or a region.
     programs.gpu-screen-recorder.enable = true;
+    # The wallpapers where every desktop looks for them: Plasma, GNOME and
+    # Xfce list share/wallpapers, share/gnome-background-properties and
+    # share/backgrounds from the system profile.
+    environment.pathsToLink = [
+      "/share/backgrounds"
+      "/share/wallpapers"
+      "/share/gnome-background-properties"
+    ];
     environment.systemPackages = [
       tool
+      wallpapers
+      # The weather beside the clock.
+      pkgs.curl
       pkgs.foot
       pkgs.walker
       # walker finds its backend through PATH.

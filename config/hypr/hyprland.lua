@@ -570,6 +570,7 @@ hl.bind("SUPER + SHIFT + code:201", hl.dsp.exec_cmd("tatami menu"), { descriptio
 hl.bind("SUPER + ESCAPE", hl.dsp.exec_cmd("tatami menu system"), { description = "System menu" })
 hl.bind("XF86PowerOff", hl.dsp.exec_cmd("tatami menu system"), { locked = true, description = "Power menu" })
 hl.bind("SUPER + K", hl.dsp.exec_cmd("tatami keybindings"), { description = "Keybindings" })
+hl.bind("SUPER + CTRL + SPACE", hl.dsp.exec_cmd("tatami background"), { description = "Background switcher" })
 hl.bind("SUPER + CTRL + Q", hl.dsp.exec_cmd("tatami launch gnome-calculator"), { description = "Calculator" })
 hl.bind("XF86Calculator", hl.dsp.exec_cmd("tatami launch gnome-calculator"), { description = "Calculator" })
 

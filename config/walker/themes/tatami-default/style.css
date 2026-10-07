@@ -125,6 +125,17 @@ child:selected .item-chevron {
   color: @foreground;
 }
 
+/* Style › Background: rows with a small preview, and the selected
+   wallpaper large beside them. */
+.background-item {
+  min-height: 52px;
+}
+
+.preview-box {
+  margin-left: 16px;
+  border: 2px solid @accent;
+}
+
 .current {
   font-style: italic;
 }

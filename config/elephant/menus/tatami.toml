@@ -27,6 +27,13 @@ submenu = "tatami-trigger"
 state = ["submenu"]
 
 [[entries]]
+text = "Style"
+icon = "\uEBCF"
+submenu = "tatami-style"
+state = ["submenu"]
+keywords = ["background", "wallpaper", "theme"]
+
+[[entries]]
 text = "Setup"
 icon = ""
 submenu = "tatami-setup"

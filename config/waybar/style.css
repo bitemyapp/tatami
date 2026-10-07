@@ -68,13 +68,20 @@
   color: #f7768e;
 }
 
+#custom-weather {
+  min-width: 21px;
+  padding: 0;
+  font-size: 13px;
+}
+
 #clock {
   padding: 0 8.5px;
 }
 
-/* As wide as the indicators, so the clock sits at the exact center. */
+/* As wide as the indicators less the weather, so the clock sits at the
+   exact center. */
 #custom-center-balance {
-  min-width: 84px;
+  min-width: 63px;
   padding: 0;
 }
 
@@ -93,10 +100,11 @@
   padding: 0 6px;
 }
 
+/* Room for the calendar and weather cards. */
 tooltip {
   background-color: alpha(@background, 0.97);
   border: 1px solid @foreground;
-  padding: 4px 2px;
+  padding: 8px 10px;
 }
 
 tooltip label {

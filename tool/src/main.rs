@@ -2,6 +2,7 @@
 //! `tatami`: session launcher and desktop commands for the Tatami session
 //! (keyboard-driven Hyprland inspired by Omarchy), replacing the Bash `omarchy-*` scripts of Omarchy 4
 //! (https://github.com/basecamp/omarchy, MIT) that it is modelled on.
+mod background;
 mod browser;
 mod capture;
 mod clip;
@@ -14,6 +15,7 @@ mod power;
 mod terminal;
 mod toggle;
 mod util;
+mod weather;
 mod window;
 
 use std::{path::Path, process::ExitCode};
@@ -28,6 +30,8 @@ const USAGE: &str = "usage: tatami <command>
   apps | emoji | keybindings | about | power-profile | edit-config
   network | bluetooth | audio | display    the bar's panels
   dns <dhcp|cloudflare|google|custom>     DNS for the connection in use
+  background [set <image>|ensure|path]    desktop background picker and choice
+  weather [refresh|place]                 bar weather, refresh, choose the place
   terminal [command...]           terminal in the focused terminal's directory
   tui <command...>                terminal application (focuses an open one)
   editor [file...] | files [--cwd] | launch <program> [args...]
@@ -149,6 +153,37 @@ fn main() -> ExitCode {
             menu::walker_args(first("")).is_some()
         }
         Some("dns") => network::dns_command(first("")),
+        Some("background") => match first("") {
+            "" => {
+                background::pick();
+                true
+            }
+            "set" if rest.len() == 2 => background::set(&rest[1]),
+            "ensure" => {
+                background::ensure();
+                true
+            }
+            "path" => {
+                println!("{}", background::path().display());
+                true
+            }
+            _ => false,
+        },
+        Some("weather") => match first("") {
+            "" => {
+                println!("{}", weather::bar());
+                true
+            }
+            "refresh" => {
+                weather::refresh();
+                true
+            }
+            "place" => {
+                weather::choose_place();
+                true
+            }
+            _ => false,
+        },
         Some("display") => {
             menu::display();
             true

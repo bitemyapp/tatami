@@ -29,10 +29,13 @@
       packages.${system} = {
         # The `tatami` helper the session and its menus run.
         tatami = pkgs.callPackage ./tool/package.nix { };
+        # Its wallpapers, laid out for every desktop.
+        wallpapers = pkgs.callPackage ./wallpapers/package.nix { };
         default = self.packages.${system}.tatami;
       };
       checks.${system} = {
         tatami = self.packages.${system}.tatami;
+        wallpapers = self.packages.${system}.wallpapers;
         module = pkgs.writeText "tatami-example-system" (
           builtins.unsafeDiscardOutputDependency example.config.system.build.toplevel.drvPath
         );

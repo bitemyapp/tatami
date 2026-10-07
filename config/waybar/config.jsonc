@@ -18,6 +18,7 @@
     "custom/silence",
     "custom/stay-awake",
     "clock",
+    "custom/weather",
     "custom/center-balance"
   ],
   "modules-right": [
@@ -111,6 +112,17 @@
       "on-scroll-up": "shift_up",
       "on-scroll-down": "shift_down"
     }
+  },
+  // The weather beside the clock: the current conditions, and on hover the
+  // temperature, wind, humidity and the next three days. A click fetches it
+  // again; a right click (or Setup › Weather) chooses the place.
+  "custom/weather": {
+    "exec": "tatami weather",
+    "return-type": "json",
+    "interval": 60,
+    "signal": 7,
+    "on-click": "tatami weather refresh",
+    "on-click-right": "tatami weather place"
   },
   "custom/center-balance": {
     "format": " ",

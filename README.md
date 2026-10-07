@@ -49,8 +49,8 @@ branch has verified releases; `main` is reviewed work.
 
 | Component | Configuration |
 |---|---|
-| Look | Tokyo Night throughout, JetBrainsMono Nerd Font, the Adwaita cursor. Window gaps 5/10, a 2px `#7aa2f7` border, square corners, no blur or shadow, v4 animations, inactive windows at 0.985/0.96 opacity. NixOS artwork wallpaper, since Omarchy's wallpapers have unclear licenses |
-| Bar | Waybar, 26px. NixOS logo (menu), workspaces 1–5, a centered "Monday 10:23" clock with screen-recording, night-light, do-not-disturb and stay-awake indicators and the month on hover, then the tray (only while some application has an icon), Bluetooth, network, audio, display and battery |
+| Look | Tokyo Night throughout, JetBrainsMono Nerd Font, the Adwaita cursor. Window gaps 5/10, a 2px `#7aa2f7` border, square corners, no blur or shadow, v4 animations, inactive windows at 0.985/0.96 opacity. Da Nang at night as the background, one of 23 wallpapers chosen with Style › Background or Super+Ctrl+Space (Omarchy's own have unclear licenses) |
+| Bar | Waybar, 26px. NixOS logo (menu), workspaces 1–5, a centered "Monday 10:23" clock with screen-recording, night-light, do-not-disturb and stay-awake indicators, the month on hover and the weather beside it, then the tray (only while some application has an icon), Bluetooth, network, audio, display and battery |
 | Menu and launcher | Walker with Elephant. The v4 menu tree (Apps, Learn, Trigger, Setup, About, System) in v4's card style, with chevrons on submenus. Typing searches menu entries and applications together. Keybindings (Super+K) are listed in v4's order and format |
 | Notifications and OSD | Mako as v4's 380px accent-bordered cards; SwayOSD as v4's bottom card |
 | Lock and idle | hyprlock with PAM in v4's style; hypridle locks and turns off displays |
@@ -87,6 +87,11 @@ The `tatami` helper (`tool/`) provides:
 - time, battery and keyboard backlight notifications
 - a terminal in the active window's directory, editor and browser launch
 - volume, microphone, brightness and media keys with OSD
+- the background picker, whose choice the lock screen also shows
+- the weather beside the clock: the conditions' icon, and on hover the
+  temperature, place, feels-like temperature, wind, humidity and the next
+  three days, from wttr.in (which finds the place from the IP address unless
+  Setup › Weather sets one) and Open-Meteo, as in Omarchy
 - screenshots (freeze, region or window, copy, notify, Satty editing)
 - screen recordings of a region or monitor, with desktop audio and the
   microphone, by gpu-screen-recorder, or wf-recorder where it cannot run
@@ -107,13 +112,23 @@ Not ported from Omarchy:
 
 - Arch package installation and updates, Limine/snapper, Plymouth theming and
   the first-run script.
-- Theme, background and font switching, web apps, the webcam overlay,
-  sharing, reminders, weather, dictation and AI agents.
+- Theme and font switching, web apps, the webcam overlay, sharing,
+  reminders, dictation and AI agents.
 - Setup's Plugins, Security, Defaults, Direct Boot and Reset entries, and the
   Install, Remove, Update and Style menus.
 - The shell's own panels: the calendar is Waybar's, audio and Bluetooth are
   the wiremix and bluetui terminal programs, and there is no notification
   history panel or network statistics.
+
+## Wallpapers
+
+`wallpapers/` has the backgrounds, with their credits and licenses in
+[wallpapers/README.md](wallpapers/README.md): photographs from Unsplash under
+the Unsplash License, and a Hubble image under CC BY 4.0. They are not under
+Tatami's license. The package `wallpapers` (also the read-only option
+`programs.tatami.wallpapers`) lays them out for every desktop from one copy of
+each image: for Plasma's, GNOME's and Xfce's wallpaper settings as well as
+Tatami's own picker. Other desktops' modules can install it to offer them.
 
 ## Development
 
