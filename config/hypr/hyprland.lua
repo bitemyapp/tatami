@@ -427,7 +427,7 @@ hl.bind("XF86Eject", hl.dsp.exec_cmd("eject"), { locked = true, description = "E
 hl.bind("SUPER + C", hl.dsp.exec_cmd("tatami clipboard copy"), { description = "Universal copy" })
 hl.bind("SUPER + V", hl.dsp.exec_cmd("tatami clipboard paste"), { description = "Universal paste" })
 hl.bind("SUPER + X", hl.dsp.exec_cmd("tatami clipboard cut"), { description = "Universal cut" })
-hl.bind("SUPER + CTRL + V", hl.dsp.exec_cmd("walker -m clipboard -p Clipboard…"), { description = "Clipboard manager" })
+hl.bind("SUPER + CTRL + V", hl.dsp.exec_cmd("tatami clipboard history"), { description = "Clipboard manager" })
 
 -------------------------------------------------------------------------------
 -- Tiling (default/hypr/bindings/tiling.lua)
@@ -562,7 +562,7 @@ hl.bind("SUPER + ALT + slash", hl.dsp.exec_cmd("tatami scale down"), { descripti
 -- Menus
 hl.bind("SUPER + SPACE", hl.dsp.exec_cmd("tatami menu"), { description = "Tatami menu" })
 hl.bind("SUPER + ALT + SPACE", hl.dsp.exec_cmd("tatami apps"), { description = "Apps menu" })
-hl.bind("SUPER + CTRL + E", hl.dsp.exec_cmd("walker -m symbols -p Emojis…"), { description = "Emojis" })
+hl.bind("SUPER + CTRL + E", hl.dsp.exec_cmd("tatami emoji"), { description = "Emojis" })
 hl.bind("SUPER + CTRL + C", hl.dsp.exec_cmd("tatami menu capture"), { description = "Capture menu" })
 hl.bind("SUPER + CTRL + O", hl.dsp.exec_cmd("tatami menu toggle"), { description = "Toggle menu" })
 hl.bind("SUPER + CTRL + H", hl.dsp.exec_cmd("tatami menu hardware"), { description = "Hardware menu" })

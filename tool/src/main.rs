@@ -39,7 +39,7 @@ const USAGE: &str = "usage: tatami <command>
   volume <raise|lower|mute-toggle|+N|-N> | mic-mute
   brightness <+5%|5%-|N%|+1%|1%-> | keyboard-brightness <up|down|cycle>
   media <next|previous|play-pause>
-  clipboard <copy|paste|cut>
+  clipboard <copy|paste|cut|history>
   screenshot [smart|region|windows|fullscreen] | color-picker
   screenrecord [--desktop-audio] [--microphone] [--stop|--menu] | capture <text|qr>
   window <pop|tiled-fullscreen|transparency|close-all>
@@ -276,6 +276,10 @@ fn main() -> ExitCode {
         }
         Some("media") => {
             media::media(first("play-pause"));
+            true
+        }
+        Some("clipboard") if first("") == "history" => {
+            menu::clipboard();
             true
         }
         Some("clipboard") => {

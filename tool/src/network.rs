@@ -402,8 +402,7 @@ pub fn dns_command(provider: &str) -> bool {
 
 fn set_provider(active: &Active, chosen: Dns) {
     let (v4, v6) = if chosen == Dns::Custom {
-        let Ok(text) = util::filter(
-            "walker",
+        let Ok(text) = crate::menu::walker_filter(
             &[
                 "--dmenu",
                 "--inputonly",
@@ -540,7 +539,7 @@ fn reason(error: &str) -> &str {
 /// Walker's password prompt; None when cancelled.
 fn ask_password(ssid: &str) -> Option<String> {
     let prompt = format!("Password for {ssid}…");
-    let password = util::filter("walker", &["--password", "-p", &prompt], b"").ok()?;
+    let password = crate::menu::walker_filter(&["--password", "-p", &prompt], b"").ok()?;
     let password = password.trim_end_matches('\n').to_owned();
     (!password.is_empty()).then_some(password)
 }

@@ -452,8 +452,7 @@ pub fn refresh() {
 /// wherever the IP address is.
 pub fn choose_place() {
     crate::menu::after_menu();
-    let Ok(text) = util::filter(
-        "walker",
+    let Ok(text) = crate::menu::walker_filter(
         &[
             "--dmenu",
             "--inputonly",

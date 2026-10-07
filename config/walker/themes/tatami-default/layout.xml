@@ -108,6 +108,7 @@
                     <style>
                       <class name="preview"></class>
                     </style>
+                    <property name="valign">center</property>
                   </object>
                 </child>
               </object>

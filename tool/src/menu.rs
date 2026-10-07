@@ -42,12 +42,44 @@ pub fn walker_args(name: &str) -> Option<Vec<String>> {
     ])
 }
 
+/// The size of the theme's card. Walker keeps the last size it was given and
+/// applies one only when asked, so every view states its size: this one
+/// unless the caller's own arguments, which come later and win, say
+/// otherwise. Without it, the menu opened after the keybindings or the
+/// background picker kept their width.
+const SIZE: [&str; 10] = [
+    "--width",
+    "300",
+    "--minwidth",
+    "1",
+    "--maxwidth",
+    "260",
+    "--minheight",
+    "1",
+    "--maxheight",
+    "636",
+];
+
+fn sized<'a>(args: &[&'a str]) -> Vec<&'a str> {
+    SIZE.iter().copied().chain(args.iter().copied()).collect()
+}
+
+/// Open a Walker view.
+pub fn walker(args: &[&str]) {
+    util::spawn("walker", &sized(args));
+}
+
+/// A Walker list or prompt: what was chosen or typed.
+pub fn walker_filter(args: &[&str], input: &[u8]) -> util::Result<String> {
+    util::filter("walker", &sized(args), input)
+}
+
 /// Super+Space, Super+Escape and the bar's menu button. Walker closes
 /// itself when asked to open while open, so the same key toggles the menu.
 pub fn show(name: &str) {
     if let Some(args) = walker_args(name) {
         let args: Vec<&str> = args.iter().map(String::as_str).collect();
-        util::spawn("walker", &args);
+        walker(&args);
     }
 }
 
@@ -69,13 +101,19 @@ pub fn after_menu() {
 /// The application list (Super+Alt+Space, and Apps in the menu).
 pub fn apps() {
     after_menu();
-    util::spawn("walker", &["-m", "desktopapplications", "-p", "Apps…"]);
+    walker(&["-m", "desktopapplications", "-p", "Apps…"]);
 }
 
-/// Trigger › Emoji.
+/// Trigger › Emoji and Super+Ctrl+E.
 pub fn emoji() {
     after_menu();
-    util::spawn("walker", &["-m", "symbols", "-p", "Emojis…"]);
+    walker(&["-m", "symbols", "-p", "Emojis…"]);
+}
+
+/// Super+Ctrl+V: the clipboard history.
+pub fn clipboard() {
+    after_menu();
+    walker(&["-m", "clipboard", "-p", "Clipboard…"]);
 }
 
 /// Wait for the menu to close before capturing the screen.
@@ -129,7 +167,7 @@ pub fn panel_index(prompt: &str, lines: &[String], current: Option<usize>) -> Op
     if let Some(selected) = &selected {
         args.extend(["-c", selected.as_str()]);
     }
-    let chosen = util::filter("walker", &args, input.as_bytes()).ok()?;
+    let chosen = walker_filter(&args, input.as_bytes()).ok()?;
     chosen
         .trim()
         .parse()
@@ -140,17 +178,14 @@ pub fn panel_index(prompt: &str, lines: &[String], current: Option<usize>) -> Op
 /// The bar's display icon and Super+Ctrl+D: Setup › Monitors as a panel.
 pub fn display() {
     after_menu();
-    util::spawn(
-        "walker",
-        &[
-            "--theme",
-            PANEL_THEME,
-            "-m",
-            "menus:tatami-display",
-            "-p",
-            "Display\u{2026}",
-        ],
-    );
+    walker(&[
+        "--theme",
+        PANEL_THEME,
+        "-m",
+        "menus:tatami-display",
+        "-p",
+        "Display\u{2026}",
+    ]);
 }
 
 /// Setup › Power Profile and the bar's battery: the profiles this machine
@@ -366,8 +401,7 @@ pub fn keybindings() {
         .map(|binds| keybinding_lines(&binds, &source_keys(&config)))
         .unwrap_or_default();
     let input = lines.join("\n");
-    let _ = util::filter(
-        "walker",
+    let _ = walker_filter(
         &[
             "--dmenu",
             "--width",

@@ -65,21 +65,18 @@ pub fn set(image: &str) -> bool {
 /// generates).
 pub fn pick() {
     crate::menu::after_menu();
-    util::spawn(
-        "walker",
-        &[
-            "-m",
-            "menus:tatami-backgrounds",
-            "-p",
-            "Background\u{2026}",
-            "--width",
-            "1000",
-            "--minwidth",
-            "330",
-            "--maxwidth",
-            "330",
-            "--maxheight",
-            "390",
-        ],
-    );
+    crate::menu::walker(&[
+        "-m",
+        "menus:tatami-backgrounds",
+        "-p",
+        "Background\u{2026}",
+        "--width",
+        "1000",
+        "--minwidth",
+        "330",
+        "--maxwidth",
+        "330",
+        "--maxheight",
+        "390",
+    ]);
 }
