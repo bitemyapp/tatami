@@ -248,8 +248,13 @@ in
         "xdg/tatami/elephant/menus/tatami-backgrounds.toml".source = backgroundsMenu;
         "xdg/tatami/background".source = wallpaper;
         # Selects the session's dconf profile (see programs.dconf below).
+        # NIXOS_OZONE_WL makes nixpkgs' Chromium/Electron wrappers pass
+        # --ozone-platform=wayland; apps that ignore ELECTRON_OZONE_PLATFORM_HINT
+        # (ChatGPT's Chromium shell) otherwise run under XWayland, unscaled
+        # because of force_zero_scaling.
         "xdg/uwsm/env-tatami".text = ''
           export DCONF_PROFILE=tatami
+          export NIXOS_OZONE_WL=1
         '';
       }
       // lib.listToAttrs (
