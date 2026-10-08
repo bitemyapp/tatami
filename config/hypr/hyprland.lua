@@ -1,8 +1,9 @@
 -- Tatami for NixOS, following Omarchy 4 "Quattro" (v4.0.4,
 -- https://github.com/basecamp/omarchy, MIT; see ../LICENSE): its
 -- default/hypr and config/hypr Lua modules, the Tokyo Night theme, and its
--- key bindings. Configuration calls only: dynamic behavior lives in the
--- `tatami` helper, and session components are systemd user units started
+-- key bindings. Configuration calls only, besides loading the monitor state
+-- the `tatami` helper writes: dynamic behavior lives in the helper, and
+-- session components are systemd user units started
 -- with this session. To customize, copy this file (including the keyboard
 -- section NixOS appends) to ~/.config/tatami/hyprland.lua.
 
@@ -11,6 +12,25 @@
 -------------------------------------------------------------------------------
 
 hl.env("GDK_SCALE", "2")
+-- The display settings chosen in the Displays window and with Super+/, then
+-- this session's monitor state, which the tatami helper writes before each
+-- of its reloads and as it turns a display off: of the rules naming a
+-- display the last loaded wins, so a display off for the session stays off,
+-- and reloading this configuration turns no monitor on or off. A rule naming
+-- a display also wins over the rule for every monitor below.
+local state_home = os.getenv("XDG_STATE_HOME")
+if not state_home or state_home:sub(1, 1) ~= "/" then
+  state_home = (os.getenv("HOME") or "") .. "/.local/state"
+end
+for _, file in ipairs({
+  state_home .. "/tatami/displays.lua",
+  (os.getenv("XDG_RUNTIME_DIR") or "") .. "/tatami/monitors.lua",
+}) do
+  local settings = loadfile(file)
+  if settings then
+    pcall(settings)
+  end
+end
 hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })
 
 -------------------------------------------------------------------------------
@@ -306,6 +326,9 @@ hl.window_rule({
   tag = "+floating-window",
 })
 hl.window_rule({ match = { class = "xdg-desktop-portal-gtk" }, tag = "+floating-window" })
+-- The Displays window (tatami-displays), floating with room for the
+-- arrangement: its own size, as the floating-window tag's would win over it.
+hl.window_rule({ match = { class = "org.tatami.Displays" }, float = true, center = true, size = { 880, 800 } })
 hl.window_rule({
   match = {
     class = "(sublime_text|DesktopEditors|org.gnome.Nautilus)",
@@ -605,7 +628,7 @@ hl.bind("SUPER + CTRL + ALT + B", hl.dsp.exec_cmd("tatami notify battery"), { de
 -- Control panels: Omarchy's bar panels, as terminal applications and menus.
 hl.bind("SUPER + CTRL + A", hl.dsp.exec_cmd("tatami audio"), { description = "Audio" })
 hl.bind("SUPER + CTRL + B", hl.dsp.exec_cmd("tatami bluetooth"), { description = "Bluetooth" })
-hl.bind("SUPER + CTRL + D", hl.dsp.exec_cmd("tatami display"), { description = "Display" })
+hl.bind("SUPER + CTRL + D", hl.dsp.exec_cmd("tatami display"), { description = "Display settings" })
 hl.bind("SUPER + CTRL + W", hl.dsp.exec_cmd("tatami network"), { description = "Wi-Fi" })
 hl.bind("SUPER + CTRL + P", hl.dsp.exec_cmd("tatami power-profile"), { description = "Power" })
 hl.bind("SUPER + CTRL + T", hl.dsp.exec_cmd("tatami tui btop"), { description = "Activity" })

@@ -6,6 +6,7 @@ mod background;
 mod browser;
 mod capture;
 mod clip;
+mod displays;
 mod hypr;
 mod info;
 mod media;
@@ -26,9 +27,13 @@ pub const CONFIG: &str = "/etc/xdg/tatami";
 const USAGE: &str = "usage: tatami <command>
   session                         start Hyprland with the Tatami configuration
   restore                         apply remembered toggles (session start)
-  menu [learn|trigger|capture|screenrecord|toggle|hardware|setup|display|network|dns|system]
+  reload                          apply a rebuilt Tatami to the running session
+  menu [learn|trigger|capture|screenrecord|toggle|hardware|setup|network|dns|system]
   apps | emoji | keybindings | about | power-profile | edit-config
-  network | bluetooth | audio | display    the bar's panels
+  network | bluetooth | audio             the bar's panels
+  display                         the Displays window
+  displays apply [--dry-run]      keep and apply display settings (JSON on stdin)
+  nightlight [on|off|status|KELVIN] Night Shift for the Displays window
   dns <dhcp|cloudflare|google|custom>     DNS for the connection in use
   background [set <image>|ensure|path]    desktop background picker and choice
   weather [refresh|place]                 bar weather, refresh, choose the place
@@ -61,13 +66,37 @@ pub fn config_dirs(existing: Option<&str>) -> String {
     dirs.join(":")
 }
 
+/// The configuration Hyprland starts with when the user has none of their
+/// own: a file outside the Nix store that loads the shipped one. Hyprland
+/// resolves the path it is given once and re-reads that file on every
+/// reload; given the /etc symlink, it would keep reading the store file the
+/// session began with, whatever the system has installed since.
+pub fn session_config() -> String {
+    format!(
+        "-- Written by `tatami session` for this session: Tatami's configuration,
+-- as installed when Hyprland reads it.
+dofile(\"{CONFIG}/hypr/hyprland.lua\")
+"
+    )
+}
+
 /// Start the compositor with the user's ~/.config/tatami/hyprland.lua if
-/// they have one (Setup › Hyprland makes it), otherwise the shipped one.
+/// they have one (Setup › Hyprland makes it), otherwise session_config.
 fn session() -> ExitCode {
+    // The runtime directory outlives a session that ends while another is open.
+    window::forget_monitors();
     let user = format!("{}/.config/tatami/hyprland.lua", util::home());
+    let session = window::session_dir().map(|dir| dir.join("hyprland.lua"));
     let config = if Path::new(&user).is_file() {
         user
+    } else if let Some(path) = session.filter(|path| {
+        path.parent()
+            .is_some_and(|dir| std::fs::create_dir_all(dir).is_ok())
+            && std::fs::write(path, session_config()).is_ok()
+    }) {
+        path.to_string_lossy().into_owned()
     } else {
+        // Pinned, so `tatami reload` leaves Hyprland's configuration alone.
         format!("{CONFIG}/hypr/hyprland.lua")
     };
     let launcher = util::which("start-hyprland")
@@ -83,6 +112,76 @@ fn session() -> ExitCode {
     let error = std::os::unix::process::CommandExt::exec(&mut command);
     eprintln!("tatami: cannot start {launcher}: {error}");
     ExitCode::FAILURE
+}
+
+/// Apply a rebuilt Tatami (after `nixos-rebuild switch`) to the running
+/// session, without logging out: systemd reads the session units' new
+/// definitions, Hyprland its configuration with every monitor left on or
+/// off as it is (window::reload_hyprland), and the running units restart
+/// from the new /etc/xdg/tatami. The session's environment
+/// (/etc/xdg/uwsm/env-tatami) still takes a new login: uwsm reads it, and
+/// clears it at logout, only for the variables it set itself.
+fn reload() -> ExitCode {
+    let mut failed = vec![];
+    if !util::run("systemctl", &["--user", "daemon-reload"]) {
+        failed.push("systemd user units");
+    }
+    let pinned = match window::reload_hyprland() {
+        window::Reload::Done => false,
+        window::Reload::Failed => {
+            failed.push("Hyprland");
+            false
+        }
+        window::Reload::Pinned => true,
+    };
+    // Only the units that are running: the on-demand nightlight stays off.
+    if !util::run("systemctl", &["--user", "try-restart", "tatami-*.service"]) {
+        failed.push("session units");
+    }
+    // Mako is among the restarted units: a notification sent before it is
+    // back on the bus has D-Bus start another notification daemon.
+    for _ in 0..40 {
+        if notifications_ready() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+    let later = if pinned {
+        "Hyprland's configuration applies from the next login"
+    } else {
+        ""
+    };
+    if failed.is_empty() {
+        println!("Tatami reloaded");
+        if pinned {
+            println!("{later}");
+        }
+        util::notify("\u{f0450}", "Tatami reloaded", later);
+        ExitCode::SUCCESS
+    } else {
+        let failed = failed.join(", ");
+        eprintln!("tatami: could not reload {failed}");
+        util::notify("\u{f0450}", "Tatami reload failed", &failed);
+        ExitCode::FAILURE
+    }
+}
+
+/// Whether a notification daemon has its bus name, asked without starting one.
+fn notifications_ready() -> bool {
+    util::output(
+        "busctl",
+        &[
+            "--user",
+            "call",
+            "org.freedesktop.DBus",
+            "/org/freedesktop/DBus",
+            "org.freedesktop.DBus",
+            "NameHasOwner",
+            "s",
+            "org.freedesktop.Notifications",
+        ],
+    )
+    .is_ok_and(|reply| reply.trim() == "b true")
 }
 
 /// The user's configuration as Setup › Hyprland first writes it: Tatami's
@@ -148,6 +247,7 @@ fn main() -> ExitCode {
             window::restore();
             true
         }
+        Some("reload") => return reload(),
         Some("menu") => {
             menu::show(first(""));
             menu::walker_args(first("")).is_some()
@@ -184,9 +284,22 @@ fn main() -> ExitCode {
             }
             _ => false,
         },
+        // The bar's display icon, Super+Ctrl+D and Setup › Monitors. A second
+        // launch brings the open window forward (GtkApplication).
         Some("display") => {
-            menu::display();
+            menu::after_menu();
+            util::launch("tatami-displays", &[]);
             true
+        }
+        Some("nightlight") => toggle::nightlight_command(first("status")),
+        Some("displays") if first("") == "apply" => {
+            match displays::apply_command(rest.iter().any(|arg| arg == "--dry-run")) {
+                Ok(()) => true,
+                Err(error) => {
+                    eprintln!("tatami: {error}");
+                    return ExitCode::FAILURE;
+                }
+            }
         }
         Some("audio") => {
             menu::after_menu();
@@ -452,6 +565,15 @@ mod tests {
             )),
             "/etc/xdg/tatami:/etc/xdg:/run/current-system/sw/etc/xdg"
         );
+    }
+    #[test]
+    fn session_configuration_loads_the_installed_one() {
+        let config = session_config();
+        let code: Vec<&str> = config
+            .lines()
+            .filter(|line| !line.is_empty() && !line.starts_with("--"))
+            .collect();
+        assert_eq!(code, ["dofile(\"/etc/xdg/tatami/hypr/hyprland.lua\")"]);
     }
     #[test]
     fn user_configuration_loads_the_defaults_first() {

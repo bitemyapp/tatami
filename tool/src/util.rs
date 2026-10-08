@@ -46,28 +46,97 @@ pub fn spawn(program: &str, args: &[&str]) {
         .spawn();
 }
 
-/// Start an application in its own systemd scope in app-graphical.slice, as
-/// Omarchy does with uwsm-app. Otherwise it would run inside the
-/// compositor's unit, where systemd-oomd under memory pressure would stop the
-/// whole session instead of the one application. A scope runs the program
-/// from here, so it keeps this session's environment (XDG_CONFIG_DIRS with
-/// the Tatami configuration), which uwsm-app's daemon would not pass on.
+/// Start an application as a transient systemd service in
+/// app-graphical.slice, as Omarchy does with uwsm-app. Otherwise it would
+/// run inside the compositor's unit, where systemd-oomd under memory
+/// pressure would stop the whole session instead of the one application.
+///
+/// The service manager starts it, so its parent is not this helper or the
+/// launcher that ran it (`tatami launch` is Elephant's launch prefix), and
+/// restarting the launcher (`tatami reload`) cannot end it. A scope ran the
+/// program as the launcher's child, and an application in a NixOS FHS
+/// sandbox (`bwrap --die-with-parent`, such as Claude Desktop) is killed
+/// when its parent exits. It keeps the caller's environment and working
+/// directory, as a scope did: XDG_CONFIG_DIRS with the Tatami
+/// configuration, and Hyprland's variables when a key binding started it.
 pub fn launch(program: &str, args: &[&str]) {
     if which("systemd-run").is_some() {
-        let mut full = vec![
-            "--user",
-            "--scope",
-            "--quiet",
-            "--collect",
-            "--slice=app-graphical.slice",
-            "--",
-            program,
-        ];
-        full.extend_from_slice(args);
+        let env: Vec<(String, String)> = std::env::vars_os()
+            .filter_map(|(name, value)| Some((name.into_string().ok()?, value.into_string().ok()?)))
+            .collect();
+        let full = launch_args(program, args, &env);
+        let full: Vec<&str> = full.iter().map(String::as_str).collect();
         spawn("systemd-run", &full);
     } else {
         spawn(program, args);
     }
+}
+
+/// Variables systemd sets for the unit a program runs in; an application
+/// started as a unit of its own gets its own.
+const UNIT_VARIABLES: [&str; 21] = [
+    "INVOCATION_ID",
+    "JOURNAL_STREAM",
+    "MANAGERPID",
+    "MAINPID",
+    "NOTIFY_SOCKET",
+    "LISTEN_PID",
+    "LISTEN_FDS",
+    "LISTEN_FDNAMES",
+    "SYSTEMD_EXEC_PID",
+    "WATCHDOG_PID",
+    "WATCHDOG_USEC",
+    "MEMORY_PRESSURE_WATCH",
+    "MEMORY_PRESSURE_WRITE",
+    "RUNTIME_DIRECTORY",
+    "STATE_DIRECTORY",
+    "CACHE_DIRECTORY",
+    "LOGS_DIRECTORY",
+    "CONFIGURATION_DIRECTORY",
+    "CREDENTIALS_DIRECTORY",
+    "TRIGGER_UNIT",
+    "TRIGGER_PATH",
+];
+
+/// systemd-run's arguments for `launch`: the caller's variables copied by
+/// name (systemd-run takes a bare name's value from its own environment),
+/// leaving out those systemd would refuse, which would stop the application
+/// from starting at all. ExitType=cgroup keeps the service, and so the
+/// application, running while any of its processes do, as a scope did, for
+/// programs that hand over to a child and exit.
+pub fn launch_args(program: &str, args: &[&str], env: &[(String, String)]) -> Vec<String> {
+    let valid_name = |name: &str| {
+        name.chars()
+            .next()
+            .is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
+            && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+    };
+    let valid_value = |value: &str| {
+        !value
+            .chars()
+            .any(|c| c.is_control() && c != '\t' && c != '\n')
+    };
+    let mut full: Vec<String> = [
+        "--user",
+        "--quiet",
+        "--collect",
+        "--same-dir",
+        "--slice=app-graphical.slice",
+        "--property=ExitType=cgroup",
+    ]
+    .map(str::to_owned)
+    .to_vec();
+    full.extend(
+        env.iter()
+            .filter(|(name, value)| {
+                valid_name(name) && valid_value(value) && !UNIT_VARIABLES.contains(&name.as_str())
+            })
+            .map(|(name, _)| format!("--setenv={name}")),
+    );
+    full.push("--".to_owned());
+    full.push(program.to_owned());
+    full.extend(args.iter().map(|arg| (*arg).to_owned()));
+    full
 }
 
 /// This helper, for commands that run it again.
@@ -184,6 +253,31 @@ pub fn signal_waybar(offset: i32) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn applications_start_as_services_with_the_callers_environment() {
+        let env = [
+            ("XDG_CONFIG_DIRS", "/etc/xdg/tatami:/etc/xdg"),
+            ("ELECTRON_OZONE_PLATFORM_HINT", "wayland"),
+            ("INVOCATION_ID", "0123"),
+            ("BASH_FUNC_x%%", "() { :; }"),
+            ("BAD", "a\u{1b}b"),
+            ("MULTI", "a\nb"),
+        ]
+        .map(|(name, value)| (name.to_owned(), value.to_owned()));
+        let args = launch_args("chatgpt", &["--new-window"], &env);
+        assert!(!args.contains(&"--scope".to_owned()));
+        assert!(args.contains(&"--property=ExitType=cgroup".to_owned()));
+        assert!(args.contains(&"--same-dir".to_owned()));
+        let set: Vec<&str> = args
+            .iter()
+            .filter_map(|arg| arg.strip_prefix("--setenv="))
+            .collect();
+        assert_eq!(
+            set,
+            ["XDG_CONFIG_DIRS", "ELECTRON_OZONE_PLATFORM_HINT", "MULTI"]
+        );
+        assert_eq!(args[args.len() - 3..], ["--", "chatgpt", "--new-window"]);
+    }
     #[test]
     fn zombies_are_not_running() {
         assert!(is_zombie("1479 (gpu-screen-reco) Z 1468 1468"));

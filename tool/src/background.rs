@@ -70,8 +70,6 @@ pub fn pick() {
         "menus:tatami-backgrounds",
         "-p",
         "Background\u{2026}",
-        "--width",
-        "1000",
         "--minwidth",
         "330",
         "--maxwidth",

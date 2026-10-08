@@ -29,16 +29,30 @@
       packages.${system} = {
         # The `tatami` helper the session and its menus run.
         tatami = pkgs.callPackage ./tool/package.nix { };
+        # The Displays window.
+        displays = pkgs.callPackage ./displays/package.nix { };
         # Its wallpapers, laid out for every desktop.
         wallpapers = pkgs.callPackage ./wallpapers/package.nix { };
         default = self.packages.${system}.tatami;
       };
       checks.${system} = {
         tatami = self.packages.${system}.tatami;
+        displays = self.packages.${system}.displays;
         wallpapers = self.packages.${system}.wallpapers;
         module = pkgs.writeText "tatami-example-system" (
           builtins.unsafeDiscardOutputDependency example.config.system.build.toplevel.drvPath
         );
+      };
+      # Cargo, the Rust toolchain and the libraries both crates build with.
+      devShells.${system}.default = pkgs.mkShell {
+        inputsFrom = [
+          self.packages.${system}.tatami
+          self.packages.${system}.displays
+        ];
+        packages = [
+          pkgs.clippy
+          pkgs.rustfmt
+        ];
       };
       formatter.${system} = pkgs.nixfmt;
     };

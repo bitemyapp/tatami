@@ -3,7 +3,9 @@
 //! scripts. Settings changed at runtime go through `hyprctl eval`; the ones
 //! Omarchy keeps across sessions are remembered under
 //! ~/.local/state/tatami/toggles and applied again by `tatami restore`
-//! when the next session starts (and after the reloads below).
+//! when the next session starts (and after the reloads below). The monitors'
+//! state is also kept for the session where the configuration loads it, so
+//! reloading the configuration leaves the monitors as they are.
 use crate::{hypr, util};
 use serde_json::Value;
 use std::{fs, path::PathBuf};
@@ -43,8 +45,9 @@ fn flip(name: &str) -> bool {
         }
     } else {
         let _ = fs::remove_file(&path);
-        util::run("hyprctl", &["reload"]);
-        restore();
+        if let Reload::Pinned = reload_hyprland() {
+            util::notify("\u{f0450}", "Back to normal at the next login", "");
+        }
     }
     on
 }
@@ -91,8 +94,7 @@ pub fn workspace_layout() {
     );
 }
 
-/// Apply remembered toggles, workspace layouts, monitor scales and a
-/// disabled touchpad.
+/// Apply remembered toggles, workspace layouts and a disabled touchpad.
 pub fn restore() {
     for name in [GAPS, ASPECT] {
         if flag(name).exists()
@@ -116,19 +118,10 @@ pub fn restore() {
             hypr::eval(&layout_lua(id, layout.trim()));
         }
     }
-    let monitors = hypr::json("monitors").unwrap_or_default();
-    for monitor in monitors.as_array().into_iter().flatten() {
-        let Some(name) = monitor["name"].as_str().filter(|n| hypr::safe_name(n)) else {
-            continue;
-        };
-        let saved = fs::read_to_string(scales().join(name)).unwrap_or_default();
-        if let Ok(scale) = saved.trim().parse::<f64>()
-            && (1.0..=4.0).contains(&scale)
-            && let Some(lua) = monitor_lua(monitor, scale)
-        {
-            hypr::eval(&lua);
-        }
-    }
+    // Display settings are in the configuration (displays.rs); scales kept
+    // before it are brought in once.
+    crate::displays::migrate(&scales());
+    remember_monitors(&switched_off());
 }
 
 /// Close windows politely so applications can save state, then focus the
@@ -248,48 +241,130 @@ pub fn next_scale(current: f64, width: i64, height: i64, up: bool) -> f64 {
     steps[index].1
 }
 
+/// Scales kept per connector before the display settings (displays.rs).
 fn scales() -> PathBuf {
     toggles().join("monitor-scale")
 }
 
-/// Lua that sets a monitor to `scale` (cleaned for its mode).
-pub fn monitor_lua(monitor: &Value, scale: f64) -> Option<String> {
-    let name = monitor["name"].as_str().filter(|n| hypr::safe_name(n))?;
-    let width = monitor["width"].as_i64()?;
-    let height = monitor["height"].as_i64()?;
-    let refresh = monitor["refreshRate"].as_f64()?;
-    let scale = clean_scale(scale, width, height);
-    Some(format!(
-        "hl.monitor({{ output = \"{name}\", mode = \"{width}x{height}@{refresh}\", position = \"auto\", scale = {scale} }})"
-    ))
+/// This session's files: the configuration Hyprland starts with and the
+/// monitor state it loads. In the runtime directory, so they last as long
+/// as the session.
+pub fn session_dir() -> Option<PathBuf> {
+    std::env::var("XDG_RUNTIME_DIR")
+        .ok()
+        .filter(|dir| dir.starts_with('/'))
+        .map(|dir| PathBuf::from(dir).join("tatami"))
 }
 
-/// Super+/ and Super+Alt+/: step the focused monitor's scale.
+/// The monitor state, which the configuration loads after the display
+/// settings (config/hypr/hyprland.lua), and which reloads write first.
+/// Hyprland turns a monitor on or off on a reload only when its rule says
+/// otherwise than the monitor is, and of the rules naming a monitor the
+/// last one loaded wins, so with the state a reload leaves every monitor on
+/// or off as it was. Turning one on or off under running applications is
+/// what ended Claude Desktop (Electron).
+const MONITORS_LUA: &str = "monitors.lua";
+const MONITORS_OFF: &str = "monitors-off";
+
+/// The monitors switched off in this session: by Tatami when it turns one
+/// off, and as they are just before every reload. Never read back from
+/// Hyprland just after a change, which it may not show yet.
+fn switched_off() -> Vec<String> {
+    session_dir()
+        .and_then(|dir| fs::read_to_string(dir.join(MONITORS_OFF)).ok())
+        .unwrap_or_default()
+        .lines()
+        .map(str::trim)
+        .filter(|name| hypr::safe_name(name))
+        .map(str::to_owned)
+        .collect()
+}
+
+/// Lua for the session's monitors: the switched-off ones off. The others get
+/// no rule here, so their display settings, or the configuration's rule for
+/// every monitor, apply.
+pub fn monitor_state_lua(off: &[String]) -> String {
+    off.iter()
+        .filter(|name| hypr::safe_name(name))
+        .map(|name| format!("hl.monitor({{ output = \"{name}\", disabled = true }})\n"))
+        .collect()
+}
+
+/// Record the switched-off monitors and write the state the configuration
+/// loads.
+fn remember_monitors(off: &[String]) -> bool {
+    let Some(dir) = session_dir() else {
+        return false;
+    };
+    fs::create_dir_all(&dir).is_ok()
+        && fs::write(dir.join(MONITORS_OFF), off.join("\n")).is_ok()
+        && fs::write(dir.join(MONITORS_LUA), monitor_state_lua(off)).is_ok()
+}
+
+/// Displays turned off and on in the Displays window, for the session.
+pub fn switch_off(off: &[String], on: &[String]) -> bool {
+    let mut list = switched_off();
+    list.retain(|name| !on.contains(name) && !off.contains(name));
+    list.extend(off.iter().cloned());
+    remember_monitors(&list)
+}
+
+pub enum Reload {
+    Done,
+    Failed,
+    /// Hyprland would re-read a pinned configuration, which does not load the
+    /// monitor state (hypr::config_pinned): not reloaded.
+    Pinned,
+}
+
+/// Reload Hyprland's configuration without turning any monitor on or off,
+/// then apply the remembered toggles it resets: the state written first has
+/// the monitors that are off now off, and the others on.
+pub fn reload_hyprland() -> Reload {
+    // Scales kept before the display settings join them first, so the
+    // configuration loads them rather than its automatic scale: now, or at
+    // the next login when this session's configuration is pinned.
+    crate::displays::migrate(&scales());
+    if hypr::config_pinned() {
+        return Reload::Pinned;
+    }
+    let Ok(all) = hypr::json_args(&["monitors", "all"]) else {
+        return Reload::Failed;
+    };
+    if !remember_monitors(&disabled_monitors(&all)) || !util::run("hyprctl", &["reload"]) {
+        return Reload::Failed;
+    }
+    restore();
+    Reload::Done
+}
+
+/// A new session starts with every monitor on and nothing remembered.
+pub fn forget_monitors() {
+    if let Some(dir) = session_dir() {
+        let _ = fs::remove_file(dir.join(MONITORS_LUA));
+        let _ = fs::remove_file(dir.join(MONITORS_OFF));
+    }
+}
+
+/// Super+/ and Super+Alt+/: step the focused monitor's scale, kept with its
+/// display settings (displays.rs).
 pub fn scale(up: bool) {
-    let monitors = hypr::json("monitors").unwrap_or_default();
-    let Some(monitor) = monitors
+    let all = hypr::json_args(&["monitors", "all"]).unwrap_or_default();
+    let Some(monitor) = all
         .as_array()
         .and_then(|list| list.iter().find(|m| m["focused"] == true))
     else {
         return;
     };
-    let (Some(current), Some(width), Some(height), Some(name)) = (
+    let (Some(current), Some(width), Some(height)) = (
         monitor["scale"].as_f64(),
         monitor["width"].as_i64(),
         monitor["height"].as_i64(),
-        monitor["name"].as_str(),
     ) else {
         return;
     };
-    let target = next_scale(current, width, height, up);
-    if let Some(lua) = monitor_lua(monitor, target) {
-        hypr::eval(&lua);
-        let _ = fs::create_dir_all(scales());
-        let _ = fs::write(
-            scales().join(name),
-            clean_scale(target, width, height).to_string(),
-        );
-    }
+    let target = clean_scale(next_scale(current, width, height, up), width, height);
+    crate::displays::set_scale(monitor, &all, target);
 }
 
 /// The built-in panel among `hyprctl monitors all`.
@@ -312,8 +387,16 @@ pub fn laptop_display() {
     let Some(name) = internal["name"].as_str().filter(|n| hypr::safe_name(n)) else {
         return;
     };
+    let mut off = switched_off();
+    off.retain(|other| other != name);
     if internal["disabled"] == true {
-        util::run("hyprctl", &["reload"]);
+        // Its display settings, or the configuration's rule for every
+        // monitor, given by name: Hyprland compares rules by their settings,
+        // so a later reload leaves it on.
+        remember_monitors(&off);
+        if let Some(rule) = crate::displays::rule_for(internal, &all) {
+            hypr::eval(&rule);
+        }
         restore();
         hypr::dpms(true);
         util::notify("\u{f0379}", "Laptop display enabled", "");
@@ -328,10 +411,31 @@ pub fn laptop_display() {
         util::notify("\u{f0379}", "Can't disable the only active display", "");
         return;
     }
-    hypr::eval(&format!(
-        "hl.monitor({{ output = \"{name}\", disabled = true }})"
-    ));
+    off.push(name.to_owned());
+    remember_monitors(&off);
+    disable_monitor(name);
     util::notify("\u{f0379}", "Laptop display disabled", "");
+}
+
+/// Turn a monitor off until the next configuration reload.
+fn disable_monitor(name: &str) -> bool {
+    hypr::safe_name(name)
+        && hypr::eval(&format!(
+            "hl.monitor({{ output = \"{name}\", disabled = true }})"
+        ))
+}
+
+/// Monitors that are off, from `hyprctl -j monitors all`, such as the
+/// laptop display after Super+Ctrl+Delete.
+fn disabled_monitors(all: &Value) -> Vec<String> {
+    all.as_array()
+        .into_iter()
+        .flatten()
+        .filter(|monitor| monitor["disabled"] == true)
+        .filter_map(|monitor| monitor["name"].as_str())
+        .filter(|name| hypr::safe_name(name))
+        .map(str::to_owned)
+        .collect()
 }
 
 /// A Lua string literal for any text: every byte outside [A-Za-z0-9 -_.:]
@@ -431,21 +535,6 @@ mod tests {
         assert_eq!(next_scale(4.0, 3840, 2160, true), 4.0);
     }
     #[test]
-    fn monitor_lua_names_mode_and_scale() {
-        let monitor = json!({"name": "eDP-1", "width": 2880, "height": 1800, "refreshRate": 120.0});
-        assert_eq!(
-            monitor_lua(&monitor, 2.0).unwrap(),
-            "hl.monitor({ output = \"eDP-1\", mode = \"2880x1800@120\", position = \"auto\", scale = 2 })"
-        );
-        assert!(
-            monitor_lua(
-                &json!({"name": "x\"y", "width": 1, "height": 1, "refreshRate": 60.0}),
-                1.0
-            )
-            .is_none()
-        );
-    }
-    #[test]
     fn pop_out_and_back() {
         let out = pop_steps("0xabc", false);
         assert_eq!(out.len(), 6);
@@ -464,6 +553,28 @@ mod tests {
         );
         assert!(toggle_lua(GAPS).unwrap().contains("gaps_out = 0"));
         assert!(toggle_lua("nope").is_none());
+    }
+    #[test]
+    fn disabled_monitors_are_listed_by_safe_name() {
+        let all = json!([
+            {"name": "eDP-1", "disabled": true},
+            {"name": "DP-1", "disabled": false},
+            {"name": "x\"y", "disabled": true}
+        ]);
+        assert_eq!(disabled_monitors(&all), ["eDP-1"]);
+        assert!(disabled_monitors(&json!([])).is_empty());
+    }
+    #[test]
+    fn session_monitor_state_keeps_switched_off_displays_off() {
+        let off = ["eDP-1".to_owned(), "x\"y".to_owned()];
+        // Only the switched-off displays: the others keep their display
+        // settings, which load before this state. Names stay data.
+        assert_eq!(
+            monitor_state_lua(&off),
+            "hl.monitor({ output = \"eDP-1\", disabled = true })\n"
+        );
+        // Switched on again: no rule.
+        assert!(monitor_state_lua(&[]).is_empty());
     }
     #[test]
     fn device_names_stay_data() {

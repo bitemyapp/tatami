@@ -11,9 +11,8 @@ action = "%VALUE%"
 [[entries]]
 text = "Monitors"
 icon = "\U000F0379"
-submenu = "tatami-display"
-state = ["submenu"]
-keywords = ["display", "brightness", "scale"]
+value = "tatami display"
+keywords = ["display", "brightness", "scale", "resolution", "refresh", "arrange", "hdr", "night shift"]
 
 [[entries]]
 text = "Network"

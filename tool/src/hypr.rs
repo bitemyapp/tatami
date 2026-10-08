@@ -25,6 +25,40 @@ pub fn eval(code: &str) -> bool {
     output("hyprctl", &["eval", code]).is_ok_and(|reply| reply.trim() == "ok")
 }
 
+/// The configuration file in Hyprland's command line (`-c` or `--config`).
+pub fn config_arg(args: &[String]) -> Option<&str> {
+    args.windows(2)
+        .find(|pair| pair[0] == "-c" || pair[0] == "--config")
+        .map(|pair| pair[1].as_str())
+}
+
+/// Whether a reload would read a configuration pinned in the Nix store.
+/// Hyprland resolves the path of its configuration once, when it starts,
+/// and re-reads that file on every reload: started on the /etc symlink, it
+/// keeps reading the configuration the session began with, whatever the
+/// system has since installed. Anything unknown counts as pinned.
+pub fn config_pinned() -> bool {
+    let signature = std::env::var("HYPRLAND_INSTANCE_SIGNATURE").ok();
+    let pid = json("instances").ok().and_then(|instances| {
+        instances.as_array()?.iter().find(|instance| {
+            signature
+                .as_deref()
+                .is_none_or(|signature| instance["instance"] == signature)
+        })?["pid"]
+            .as_i64()
+    });
+    let Some(raw) = pid.and_then(|pid| std::fs::read(format!("/proc/{pid}/cmdline")).ok()) else {
+        return true;
+    };
+    let args: Vec<String> = raw
+        .split(|byte| *byte == 0)
+        .map(|arg| String::from_utf8_lossy(arg).into_owned())
+        .collect();
+    config_arg(&args)
+        .and_then(|config| std::fs::canonicalize(config).ok())
+        .is_none_or(|config| config.starts_with("/nix/store"))
+}
+
 /// A window address as `hyprctl` prints it, safe to embed in Lua.
 pub fn address(window: &Value) -> Option<&str> {
     window["address"]
@@ -231,6 +265,22 @@ mod tests {
         assert_eq!(Rect::parse(&rect.slurp()), Some(rect));
         assert_eq!(Rect::parse("garbage"), None);
         assert!(rect.contains(4, 5) && !rect.contains(604, 5));
+    }
+    #[test]
+    fn configuration_is_read_from_the_command_line() {
+        let args = |line: &str| line.split(' ').map(str::to_owned).collect::<Vec<_>>();
+        assert_eq!(
+            config_arg(&args(
+                "Hyprland --watchdog-fd 4 --config /etc/xdg/tatami/hypr/hyprland.lua"
+            )),
+            Some("/etc/xdg/tatami/hypr/hyprland.lua")
+        );
+        assert_eq!(
+            config_arg(&args("Hyprland -c /run/user/1000/tatami/hyprland.lua")),
+            Some("/run/user/1000/tatami/hyprland.lua")
+        );
+        assert_eq!(config_arg(&args("Hyprland --config")), None);
+        assert_eq!(config_arg(&args("Hyprland")), None);
     }
     #[test]
     fn active_window_pid_rejects_missing_values() {

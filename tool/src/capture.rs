@@ -121,13 +121,7 @@ pub fn screenshot(mode: &str) {
         hypr::focused_monitor_rect(&monitors)
     } else {
         // Freeze the screen so the selection matches what is captured.
-        let freeze = Command::new("hyprpicker")
-            .args(["-r", "-z"])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
-            .ok();
-        thread::sleep(Duration::from_millis(100));
+        let freeze = Freeze::start();
         let picked = match mode {
             "region" => util::output("slurp", &[]),
             _ => {
@@ -144,10 +138,7 @@ pub fn screenshot(mode: &str) {
             }
         });
         let shot = rect.and_then(|rect| capture(&dir, rect));
-        if let Some(mut freeze) = freeze {
-            let _ = freeze.kill();
-            let _ = freeze.wait();
-        }
+        drop(freeze);
         if let Some(path) = shot {
             announce(&path);
         }
@@ -210,21 +201,109 @@ pub fn notify_edit(path: &str) {
     }
 }
 
+/// The screen frozen while a region is chosen (`hyprpicker -r -z`), until
+/// dropped. hyprpicker keeps each monitor's frame in a file in its runtime
+/// directory (32 MB at 4K) and removes the files only when it ends by
+/// itself. Killed, it left them in /run/user, until that was full and the
+/// next screen copy into such a file crashed Hyprland (SIGBUS: Hyprland
+/// writes to clients' memory unguarded). So it runs with a runtime directory
+/// of its own, removed when the freeze ends, whatever hyprpicker did.
+struct Freeze {
+    child: Option<std::process::Child>,
+    dir: PathBuf,
+}
+
+impl Freeze {
+    fn start() -> Self {
+        use std::os::unix::fs::DirBuilderExt;
+        let runtime = std::env::var("XDG_RUNTIME_DIR").unwrap_or_default();
+        sweep_frames(&runtime);
+        let dir = PathBuf::from(&runtime).join(format!("tatami-freeze-{}", std::process::id()));
+        // Absolute, so it still finds the compositor from the other directory.
+        let display = std::env::var("WAYLAND_DISPLAY").unwrap_or_else(|_| "wayland-0".into());
+        let socket = if display.starts_with('/') {
+            display
+        } else {
+            format!("{runtime}/{display}")
+        };
+        // Its frames are the screen's contents: the user's alone.
+        let made =
+            runtime.starts_with('/') && fs::DirBuilder::new().mode(0o700).create(&dir).is_ok();
+        let child = made
+            .then(|| {
+                Command::new("hyprpicker")
+                    .args(["-r", "-z"])
+                    .env("XDG_RUNTIME_DIR", &dir)
+                    .env("WAYLAND_DISPLAY", &socket)
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null())
+                    .spawn()
+                    .ok()
+            })
+            .flatten();
+        thread::sleep(Duration::from_millis(100));
+        Self { child, dir }
+    }
+}
+
+impl Drop for Freeze {
+    fn drop(&mut self) {
+        if let Some(child) = &mut self.child {
+            // SIGTERM lets it close its surfaces; SIGKILL if it does not.
+            unsafe {
+                libc::kill(child.id() as i32, libc::SIGTERM);
+            }
+            for _ in 0..20 {
+                if matches!(child.try_wait(), Ok(Some(_))) {
+                    break;
+                }
+                thread::sleep(Duration::from_millis(25));
+            }
+            if matches!(child.try_wait(), Ok(None)) {
+                let _ = child.kill();
+            }
+            let _ = child.wait();
+        }
+        let _ = fs::remove_dir_all(&self.dir);
+    }
+}
+
+/// Frames freezes left before: hyprpicker's own files, from when it was
+/// killed, and the directories of helpers that did not finish. Only while no
+/// hyprpicker runs, as the color picker keeps its frames there too.
+fn sweep_frames(runtime: &str) {
+    if !runtime.starts_with('/') || !util::pids_named(&["hyprpicker"]).is_empty() {
+        return;
+    }
+    for entry in fs::read_dir(runtime).into_iter().flatten().flatten() {
+        let name = entry.file_name();
+        let Some(name) = name.to_str() else { continue };
+        if leaked_frame(name, |pid| {
+            std::path::Path::new(&format!("/proc/{pid}")).exists()
+        }) {
+            let path = entry.path();
+            let _ = fs::remove_file(&path).or_else(|_| fs::remove_dir_all(&path));
+        }
+    }
+}
+
+/// A frame file or freeze directory in the runtime directory that nothing
+/// uses: hyprpicker's (".hyprpicker_XXXXXX"), or a helper's that has ended.
+pub fn leaked_frame(name: &str, alive: impl Fn(u32) -> bool) -> bool {
+    if name.starts_with(".hyprpicker_") {
+        return true;
+    }
+    name.strip_prefix("tatami-freeze-")
+        .and_then(|pid| pid.parse().ok())
+        .is_some_and(|pid| !alive(pid))
+}
+
 /// Freeze the screen and select a region; None when cancelled.
 fn frozen_region() -> Option<Rect> {
-    let freeze = Command::new("hyprpicker")
-        .args(["-r", "-z"])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .ok();
-    thread::sleep(Duration::from_millis(100));
-    let picked = util::output("slurp", &[]).ok();
-    if let Some(mut freeze) = freeze {
-        let _ = freeze.kill();
-        let _ = freeze.wait();
-    }
-    picked.and_then(|text| Rect::parse(&text))
+    let _freeze = Freeze::start();
+    util::output("slurp", &[])
+        .ok()
+        .and_then(|text| Rect::parse(&text))
 }
 
 /// A region as a PNG in the runtime directory, removed when dropped.
@@ -520,6 +599,23 @@ pub fn color_picker() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn frames_left_by_freezes_are_found() {
+        let alive = |pid: u32| pid == 42;
+        assert!(leaked_frame(".hyprpicker_ZVzUkA", alive));
+        assert!(leaked_frame("tatami-freeze-7", alive));
+        // A freeze still running, and everything else in the runtime directory.
+        assert!(!leaked_frame("tatami-freeze-42", alive));
+        for name in [
+            "wayland-1",
+            "tatami",
+            "tatami-grab-7.png",
+            "tatami-freeze-x",
+            "hypr",
+        ] {
+            assert!(!leaked_frame(name, alive), "{name}");
+        }
+    }
     #[test]
     fn pictures_directory_from_user_dirs() {
         assert_eq!(

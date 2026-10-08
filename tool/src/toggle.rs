@@ -71,44 +71,105 @@ fn temperature() -> Option<u32> {
         .and_then(|text| parse_temperature(&text))
 }
 
-/// The temperature to switch to: night unless the screen is already tinted.
-pub fn next_temperature(current: Option<u32>) -> u32 {
+/// The temperature to switch to: `night` unless the screen is already
+/// tinted.
+pub fn next_temperature(current: Option<u32>, night: u32) -> u32 {
     match current {
         Some(t) if t < IDENTITY => DAY,
-        _ => NIGHT,
+        _ => night,
     }
 }
 
-pub fn nightlight() {
+fn night_file() -> std::path::PathBuf {
+    util::state_dir().join("nightlight-temperature")
+}
+
+/// A night temperature: warmer than hyprsunset's identity, and not so warm
+/// the screen is unreadable.
+pub fn valid_night(kelvin: u32) -> bool {
+    (1900..IDENTITY).contains(&kelvin)
+}
+
+/// The night temperature chosen in the Displays window, or Omarchy's.
+fn night() -> u32 {
+    std::fs::read_to_string(night_file())
+        .ok()
+        .and_then(|text| text.trim().parse().ok())
+        .filter(|kelvin| valid_night(*kelvin))
+        .unwrap_or(NIGHT)
+}
+
+/// Tint the screen to `target`, starting hyprsunset if needed.
+fn set_temperature(target: u32) -> bool {
     if !active(SUNSET_UNIT) {
         util::run("systemctl", &["--user", "start", SUNSET_UNIT]);
     }
     // hyprsunset accepts requests only once its socket is up.
-    let mut current = None;
     for _ in 0..10 {
-        current = temperature();
-        if current.is_some() {
+        if temperature().is_some() {
             break;
         }
         thread::sleep(Duration::from_millis(200));
     }
-    let target = next_temperature(current);
     for _ in 0..10 {
         util::run(
             "hyprctl",
             &["hyprsunset", "temperature", &target.to_string()],
         );
         if temperature() == Some(target) {
-            break;
+            return true;
         }
         thread::sleep(Duration::from_millis(200));
     }
-    if target == NIGHT {
+    false
+}
+
+/// The night temperature in use, if the screen is tinted.
+fn tinted() -> Option<u32> {
+    active(SUNSET_UNIT)
+        .then(temperature)
+        .flatten()
+        .filter(|kelvin| *kelvin < IDENTITY)
+}
+
+pub fn nightlight() {
+    let night = night();
+    let target = next_temperature(tinted(), night);
+    set_temperature(target);
+    if target == night {
         util::notify("\u{f0594}", "Nightlight screen temperature", "");
     } else {
         util::notify("\u{f0599}", "Daylight screen temperature", "");
     }
     util::signal_waybar(NIGHTLIGHT_SIGNAL);
+}
+
+/// `tatami nightlight on|off|status|KELVIN`, for the Displays window's
+/// Night Shift: on at the chosen temperature, off, the temperature in use
+/// ("off" when there is none), or a new night temperature, kept and turned
+/// on.
+pub fn nightlight_command(arg: &str) -> bool {
+    let done = match arg {
+        "status" => {
+            match tinted() {
+                Some(kelvin) => println!("{kelvin}"),
+                None => println!("off {}", night()),
+            }
+            return true;
+        }
+        "on" => set_temperature(night()),
+        "off" => tinted().is_none() || set_temperature(DAY),
+        kelvin => {
+            let Some(kelvin) = kelvin.parse().ok().filter(|k| valid_night(*k)) else {
+                return false;
+            };
+            let _ = std::fs::create_dir_all(util::state_dir());
+            let _ = std::fs::write(night_file(), kelvin.to_string());
+            set_temperature(kelvin)
+        }
+    };
+    util::signal_waybar(NIGHTLIGHT_SIGNAL);
+    done
 }
 
 /// Waybar custom module JSON. The glyph is always there so the slot keeps
@@ -196,10 +257,13 @@ mod tests {
     }
     #[test]
     fn nightlight_alternates_like_tatami() {
-        assert_eq!(next_temperature(None), 4000);
-        assert_eq!(next_temperature(Some(6000)), 4000);
-        assert_eq!(next_temperature(Some(6500)), 4000);
-        assert_eq!(next_temperature(Some(4000)), 6500);
+        assert_eq!(next_temperature(None, NIGHT), 4000);
+        assert_eq!(next_temperature(Some(6000), NIGHT), 4000);
+        assert_eq!(next_temperature(Some(6500), NIGHT), 4000);
+        assert_eq!(next_temperature(Some(4000), NIGHT), 6500);
+        // The temperature chosen in the Displays window.
+        assert_eq!(next_temperature(None, 3200), 3200);
+        assert!(valid_night(3200) && !valid_night(6000) && !valid_night(900));
     }
     #[test]
     fn indicators_keep_their_slot() {

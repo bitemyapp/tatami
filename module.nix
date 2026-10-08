@@ -16,6 +16,8 @@ let
   cfg = config.programs.tatami;
   configDir = "/etc/xdg/tatami";
   tool = pkgs.callPackage ./tool/package.nix { };
+  # The Displays window (displays/), which the helper opens and applies for.
+  displays = pkgs.callPackage ./displays/package.nix { };
   wallpapers = pkgs.callPackage ./wallpapers/package.nix { };
   # Only the providers the launcher and menu use (config/walker): not
   # Arch package search, password managers or other compositors' windows.
@@ -145,6 +147,8 @@ let
     + lib.optionalString (config.boot.resumeDevice != "") (
       systemEntry "Hibernate" "\\U000F0901" "tatami hibernate"
     )
+    # After a rebuild: the new Tatami in this session, without logging out.
+    + systemEntry "Reload" "\\U000F0450" "tatami reload"
     + systemEntry "Logout" "\\U000F0343" "tatami logout"
     + systemEntry "Reboot" "\\U000F0709" "tatami reboot"
     + systemEntry "Shutdown" "\\U000F0425" "tatami shutdown"
@@ -396,6 +400,7 @@ in
     ];
     environment.systemPackages = [
       tool
+      displays
       wallpapers
       # The weather beside the clock.
       pkgs.curl
