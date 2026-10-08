@@ -245,7 +245,11 @@ hl.window_rule({
 -- 1Password and Bitwarden.
 hl.window_rule({ match = { class = "^(1[p|P]assword)$" }, no_screen_share = true, tag = "+floating-window" })
 hl.window_rule({ match = { class = "^(Bitwarden)$" }, no_screen_share = true, tag = "+floating-window" })
-hl.window_rule({ match = { class = "chrome-nngceckbapebfimnlniiiahkandclblb-Default" }, no_screen_share = true, tag = "+floating-window" })
+-- Bitwarden's Chrome extension opens its popout at the size it chooses (480x630
+-- by default) and holds it there: under the floating-window tag's 875x600 Chrome
+-- painted only the popout's own width, leaving the rest see-through. It floats,
+-- centered, at its own size instead.
+hl.window_rule({ match = { class = "chrome-nngceckbapebfimnlniiiahkandclblb-Default" }, no_screen_share = true, float = true, center = true })
 
 -- Battle.net under Proton.
 hl.window_rule({ match = { class = "^steam_app_battlenet$", title = "^Battle\\.net$" }, float = true, center = true, size = { 1280, 800 } })
